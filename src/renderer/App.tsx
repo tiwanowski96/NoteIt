@@ -2,12 +2,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Note } from './types';
 import NotesList from './components/NotesList';
 import NoteEditor from './components/NoteEditor';
+import TemplateModal, { Template } from './components/Templates';
+import ShortcutsPanel from './components/ShortcutsPanel';
+import Onboarding from './components/Onboarding';
 
 function App() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [view, setView] = useState<'list' | 'editor'>('list');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const params = new URLSearchParams(window.location.search);
   const windowMode = params.get('mode');
@@ -24,6 +30,10 @@ function App() {
     if (savedTheme) {
       setTheme(savedTheme);
       document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+    // Show onboarding on first launch
+    if (!windowMode && !localStorage.getItem('noteit-onboarded')) {
+      setShowOnboarding(true);
     }
   }, []);
 
@@ -99,6 +109,10 @@ function App() {
         e.preventDefault();
         handleNewNote();
       }
+      if (e.key === '?' && !e.ctrlKey && !e.metaKey && !(e.target as HTMLElement).matches('input, textarea, [contenteditable]')) {
+        e.preventDefault();
+        setShowShortcuts(true);
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -113,7 +127,12 @@ function App() {
   };
 
   const handleNewNote = () => {
-    const baseTitle = 'Nowa notatka';
+    setShowTemplates(true);
+  };
+
+  const handleCreateFromTemplate = (template?: Template) => {
+    setShowTemplates(false);
+    const baseTitle = template ? template.name : 'Nowa notatka';
     let title = baseTitle;
     const existingTitles = notes.filter((n) => !n.deleted).map((n) => n.title);
     if (existingTitles.includes(title)) {
@@ -127,7 +146,7 @@ function App() {
     const newNote: Note = {
       id: crypto.randomUUID(),
       title,
-      content: '',
+      content: template ? template.content : '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       pinned: false,
@@ -191,6 +210,7 @@ function App() {
 
   const handleBack = () => {
     if (windowMode === 'editor' || windowMode === 'last') {
+      window.electronAPI.focusMainWindow();
       window.close();
     } else {
       setView('list');
@@ -230,6 +250,7 @@ function App() {
           onExport={handleExportNote}
           theme={theme}
           onToggleTheme={toggleTheme}
+          onShowShortcuts={() => setShowShortcuts(true)}
         />
       ) : (
         <NoteEditor
@@ -240,6 +261,21 @@ function App() {
           theme={theme}
           onToggleTheme={toggleTheme}
         />
+      )}
+      {showTemplates && (
+        <TemplateModal
+          onSelect={handleCreateFromTemplate}
+          onClose={() => setShowTemplates(false)}
+        />
+      )}
+      {showShortcuts && (
+        <ShortcutsPanel onClose={() => setShowShortcuts(false)} />
+      )}
+      {showOnboarding && (
+        <Onboarding onComplete={() => {
+          setShowOnboarding(false);
+          localStorage.setItem('noteit-onboarded', 'true');
+        }} />
       )}
     </div>
   );

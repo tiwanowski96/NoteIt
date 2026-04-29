@@ -14,6 +14,7 @@ interface Note {
   color?: string;
   deleted?: boolean;
   deletedAt?: string;
+  reminder?: string;
 }
 
 interface StoreSchema {
@@ -219,7 +220,162 @@ function registerShortcuts(): void {
   globalShortcut.register('CommandOrControl+Shift+Q', () => {
     showLastNote();
   });
+
+  // Screenshot to note
+  globalShortcut.register('CommandOrControl+Shift+S', () => {
+    takeScreenshot('note');
+  });
+
+  // Screenshot to clipboard
+  globalShortcut.register('CommandOrControl+Shift+C', () => {
+    takeScreenshot('clipboard');
+  });
 }
+
+let screenshotMode: 'note' | 'clipboard' = 'note';
+
+async function takeScreenshot(mode: 'note' | 'clipboard'): Promise<void> {
+  screenshotMode = mode;
+  const { desktopCapturer, screen: electronScreen } = require('electron');
+
+  const display = electronScreen.getPrimaryDisplay();
+  const { width, height } = display.size;
+  const scaleFactor = display.scaleFactor;
+
+  const sources = await desktopCapturer.getSources({
+    types: ['screen'],
+    thumbnailSize: { width: width * scaleFactor, height: height * scaleFactor },
+  });
+
+  if (!sources.length) return;
+
+  const fullScreenshot = sources[0].thumbnail.toDataURL();
+  const modeLabel = mode === 'clipboard'
+    ? 'Zaznacz obszar \u2192 kopiuj do schowka. ESC aby anulowa\u0107.'
+    : 'Zaznacz obszar \u2192 nowa notatka. ESC aby anulowa\u0107.';
+
+  const screenshotWindow = new BrowserWindow({
+    width,
+    height,
+    x: 0,
+    y: 0,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    fullscreen: true,
+    skipTaskbar: true,
+    resizable: false,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  });
+
+  const htmlContent = `<!DOCTYPE html>
+<html><head><style>
+*{margin:0;padding:0}
+body{overflow:hidden;cursor:crosshair;user-select:none}
+#bg{position:fixed;top:0;left:0;width:100%;height:100%}
+canvas{position:fixed;top:0;left:0;z-index:2}
+.info{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:10px 20px;border-radius:10px;font-family:'Segoe UI',sans-serif;font-size:13px;z-index:3;backdrop-filter:blur(4px)}
+</style></head><body>
+<img id="bg" src="${fullScreenshot}"/>
+<canvas id="canvas"></canvas>
+<div class="info">${modeLabel}</div>
+<script>
+const{ipcRenderer}=require('electron');
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+const bgImg=document.getElementById('bg');
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
+let startX=0,startY=0,isDrawing=false;
+document.addEventListener('keydown',e=>{if(e.key==='Escape')ipcRenderer.send('screenshot-cancel')});
+canvas.addEventListener('mousedown',e=>{startX=e.clientX;startY=e.clientY;isDrawing=true});
+canvas.addEventListener('mousemove',e=>{
+if(!isDrawing)return;
+ctx.clearRect(0,0,canvas.width,canvas.height);
+ctx.fillStyle='rgba(0,0,0,0.4)';
+ctx.fillRect(0,0,canvas.width,canvas.height);
+const x=Math.min(startX,e.clientX),y=Math.min(startY,e.clientY);
+const w=Math.abs(e.clientX-startX),h=Math.abs(e.clientY-startY);
+ctx.clearRect(x,y,w,h);
+ctx.strokeStyle='#6366f1';ctx.lineWidth=2;ctx.setLineDash([6,3]);
+ctx.strokeRect(x,y,w,h);ctx.setLineDash([]);
+ctx.fillStyle='rgba(99,102,241,0.9)';ctx.fillRect(x,y-22,80,20);
+ctx.fillStyle='#fff';ctx.font='11px Segoe UI';ctx.fillText(w+' x '+h,x+6,y-8);
+});
+canvas.addEventListener('mouseup',e=>{
+if(!isDrawing)return;isDrawing=false;
+const x=Math.min(startX,e.clientX),y=Math.min(startY,e.clientY);
+const w=Math.abs(e.clientX-startX),h=Math.abs(e.clientY-startY);
+if(w<10||h<10)return;
+const scaleX=bgImg.naturalWidth/window.innerWidth;
+const scaleY=bgImg.naturalHeight/window.innerHeight;
+const crop=document.createElement('canvas');
+crop.width=w*scaleX;crop.height=h*scaleY;
+const cctx=crop.getContext('2d');
+cctx.drawImage(bgImg,x*scaleX,y*scaleY,w*scaleX,h*scaleY,0,0,crop.width,crop.height);
+ipcRenderer.send('screenshot-taken',crop.toDataURL('image/png'));
+});
+</script></body></html>`;
+
+  screenshotWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+}
+
+ipcMain.on('screenshot-cancel', () => {
+  BrowserWindow.getAllWindows().forEach((win) => {
+    if (win.isAlwaysOnTop() && win.isFullScreen()) {
+      win.close();
+    }
+  });
+});
+
+ipcMain.on('screenshot-taken', (_event, dataUrl: string) => {
+  // Close screenshot window
+  BrowserWindow.getAllWindows().forEach((win) => {
+    if (win.isAlwaysOnTop() && win.isFullScreen()) {
+      win.close();
+    }
+  });
+
+  if (screenshotMode === 'clipboard') {
+    // Copy to clipboard
+    const img = nativeImage.createFromDataURL(dataUrl);
+    const { clipboard } = require('electron');
+    clipboard.writeImage(img);
+  } else {
+    // Check if any note window is focused
+    let pastedToExisting = false;
+    for (const [, win] of noteWindows) {
+      if (!win.isDestroyed() && win.isVisible()) {
+        win.webContents.send('paste-screenshot', dataUrl);
+        win.focus();
+        pastedToExisting = true;
+        break;
+      }
+    }
+
+    if (!pastedToExisting) {
+      // Create a new note with the screenshot
+      const crypto = require('crypto');
+      const newNote: Note = {
+        id: crypto.randomUUID(),
+        title: `Screenshot ${new Date().toLocaleString('pl-PL')}`,
+        content: `<img src="${dataUrl}" />`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const notes = store.get('notes');
+      notes.push(newNote);
+      store.set('notes', notes);
+
+      createNoteWindow(newNote.id);
+      broadcastUpdate();
+    }
+  }
+});
 
 function broadcastUpdate(excludeSenderId?: number): void {
   const allWindows = BrowserWindow.getAllWindows();
@@ -326,6 +482,10 @@ ipcMain.handle('open-note-window', (_event, noteId: string) => {
   createNoteWindow(noteId);
 });
 
+ipcMain.handle('focus-main-window', () => {
+  createMainWindow();
+});
+
 ipcMain.handle('set-theme', (_event, theme: string) => {
   const allWindows = BrowserWindow.getAllWindows();
   for (const win of allWindows) {
@@ -333,6 +493,54 @@ ipcMain.handle('set-theme', (_event, theme: string) => {
       win.webContents.send('theme-changed', theme);
     }
   }
+});
+
+ipcMain.handle('import-files', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openFile', 'multiSelections'],
+    filters: [
+      { name: 'Text files', extensions: ['md', 'txt', 'markdown'] },
+    ],
+  });
+
+  if (result.canceled || result.filePaths.length === 0) return;
+
+  const notes = store.get('notes');
+  const crypto = require('crypto');
+
+  for (const filePath of result.filePaths) {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const fileName = path.basename(filePath, path.extname(filePath));
+
+    // Convert markdown-like content to basic HTML
+    const htmlContent = content
+      .split('\n')
+      .map((line: string) => {
+        if (line.startsWith('### ')) return `<h3>${line.slice(4)}</h3>`;
+        if (line.startsWith('## ')) return `<h2>${line.slice(3)}</h2>`;
+        if (line.startsWith('# ')) return `<h1>${line.slice(2)}</h1>`;
+        if (line.startsWith('- [ ] ')) return `<li data-type="taskItem" data-checked="false"><p>${line.slice(6)}</p></li>`;
+        if (line.startsWith('- [x] ')) return `<li data-type="taskItem" data-checked="true"><p>${line.slice(6)}</p></li>`;
+        if (line.startsWith('- ')) return `<li><p>${line.slice(2)}</p></li>`;
+        if (line.startsWith('> ')) return `<blockquote><p>${line.slice(2)}</p></blockquote>`;
+        if (line.trim() === '') return '<p></p>';
+        return `<p>${line}</p>`;
+      })
+      .join('');
+
+    const newNote: Note = {
+      id: crypto.randomUUID(),
+      title: fileName,
+      content: htmlContent,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    notes.push(newNote);
+  }
+
+  store.set('notes', notes);
+  broadcastUpdate();
+  return notes;
 });
 
 ipcMain.handle('export-note', async (_event, noteId: string, format: string) => {
@@ -376,11 +584,49 @@ function cleanupTrash(): void {
   }
 }
 
+// Check reminders every minute
+function checkReminders(): void {
+  const notes = store.get('notes');
+  const now = new Date();
+  let changed = false;
+
+  for (const note of notes) {
+    if (note.reminder && !note.deleted) {
+      const reminderDate = new Date(note.reminder);
+      if (reminderDate <= now) {
+        // Show notification
+        const { Notification } = require('electron');
+        const notification = new Notification({
+          title: 'NoteIt – Przypomnienie',
+          body: note.title,
+          icon: getIconPath(),
+          silent: false,
+          urgency: 'critical' as any,
+        });
+        notification.on('click', () => {
+          createNoteWindow(note.id);
+        });
+        notification.show();
+
+        // Clear the reminder
+        note.reminder = undefined;
+        changed = true;
+      }
+    }
+  }
+  if (changed) {
+    store.set('notes', notes);
+    broadcastUpdate();
+  }
+}
+
 // App lifecycle
 app.on('ready', () => {
   createTray();
   registerShortcuts();
   cleanupTrash();
+  checkReminders();
+  setInterval(checkReminders, 60000); // Check every minute
 
   app.setLoginItemSettings({
     openAtLogin: true,

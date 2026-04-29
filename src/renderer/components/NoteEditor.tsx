@@ -5,10 +5,18 @@ import Image from '@tiptap/extension-image';
 import TextStyle from '@tiptap/extension-text-style';
 import Color from '@tiptap/extension-color';
 import Highlight from '@tiptap/extension-highlight';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+import Link from '@tiptap/extension-link';
 import { Note } from '../types';
 import Toolbar from './Toolbar';
 import { ArrowLeftIcon, TrashIcon, SunIcon, MoonIcon } from './Icons';
 import { SearchHighlightExtension, searchHighlightPluginKey, getSearchDecorations } from './SearchHighlight';
+import DateTimePicker from './DateTimePicker';
 
 interface Props {
   note: Note;
@@ -35,11 +43,22 @@ function getColorHex(colorKey: string, currentTheme: 'light' | 'dark'): string {
   return currentTheme === 'dark' ? found.dark : found.light;
 }
 
+function toLocalDatetimeString(isoString: string): string {
+  const date = new Date(isoString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
 function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme }: Props) {
   const [title, setTitle] = useState(note.title);
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>(note.tags || []);
   const [color, setColor] = useState(note.color || '');
+  const [reminder, setReminder] = useState(note.reminder || '');
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | ''>('');
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
@@ -63,6 +82,22 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme }: Pr
       Color,
       Highlight.configure({
         multicolor: true,
+      }),
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+      }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableCell,
+      TableHeader,
+      Link.configure({
+        openOnClick: true,
+        HTMLAttributes: {
+          class: 'note-link',
+        },
       }),
       SearchHighlightExtension,
     ],
@@ -164,6 +199,16 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme }: Pr
     };
   }, [editor]);
 
+  // Listen for screenshot paste from main process
+  useEffect(() => {
+    const unsub = window.electronAPI.onPasteScreenshot((dataUrl: string) => {
+      if (editor) {
+        editor.chain().focus().setImage({ src: dataUrl }).run();
+      }
+    });
+    return unsub;
+  }, [editor]);
+
   // Ctrl+F shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -191,11 +236,11 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme }: Pr
       clearTimeout(saveTimeoutRef.current);
     }
     saveTimeoutRef.current = setTimeout(() => {
-      onSave({ ...note, title, content, tags, color });
+      onSave({ ...note, title, content, tags, color, reminder });
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus(''), 2000);
     }, 500);
-  }, [note, title, tags, color, onSave]);
+  }, [note, title, tags, color, reminder, onSave]);
 
   const handleSave = useCallback(
     (content?: string) => {
@@ -205,11 +250,12 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme }: Pr
         content: content ?? editor?.getHTML() ?? note.content,
         tags,
         color,
+        reminder,
       });
       setSaveStatus('saved');
       setTimeout(() => setSaveStatus(''), 2000);
     },
-    [note, title, editor, onSave, tags, color]
+    [note, title, editor, onSave, tags, color, reminder]
   );
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -222,6 +268,7 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme }: Pr
 
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && tagInput.trim()) {
+      if (tags.length >= 3) { setTagInput(''); return; }
       const newTag = tagInput.trim().toLowerCase();
       if (!tags.includes(newTag)) {
         const newTags = [...tags, newTag];
@@ -240,7 +287,12 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme }: Pr
 
   const handleColorChange = (newColor: string) => {
     setColor(newColor);
-    onSave({ ...note, title, content: editor?.getHTML() ?? note.content, tags, color: newColor });
+    onSave({ ...note, title, content: editor?.getHTML() ?? note.content, tags, color: newColor, reminder });
+  };
+
+  const handleReminderChange = (value: string) => {
+    setReminder(value);
+    onSave({ ...note, title, content: editor?.getHTML() ?? note.content, tags, color, reminder: value });
   };
 
   const handleExport = (format: string) => {
@@ -312,6 +364,26 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme }: Pr
     setActiveMatch(0);
   };
 
+  // Note linking
+  const [showNoteLinkModal, setShowNoteLinkModal] = useState(false);
+  const [allNotes, setAllNotes] = useState<Note[]>([]);
+  const [noteLinkSearch, setNoteLinkSearch] = useState('');
+
+  const handleInsertNoteLink = async () => {
+    const notes = await window.electronAPI.getNotes();
+    setAllNotes(notes.filter((n) => !n.deleted && n.id !== note.id));
+    setShowNoteLinkModal(true);
+    setNoteLinkSearch('');
+  };
+
+  const handleSelectNoteLink = (linkedNote: Note) => {
+    if (!editor) return;
+    editor.chain().focus().insertContent(
+      `<a href="noteit://note/${linkedNote.id}" class="note-link">[[${linkedNote.title}]]</a>`
+    ).run();
+    setShowNoteLinkModal(false);
+  };
+
   const resolvedColor = getColorHex(color, theme);
 
   return (
@@ -342,6 +414,14 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme }: Pr
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
           </button>
+          <DateTimePicker
+            value={reminder}
+            onChange={(iso) => handleReminderChange(iso)}
+            onClear={() => handleReminderChange('')}
+          />
+          <button className="btn-icon btn-delete" onClick={() => setConfirmDelete(true)} title="Usuń notatkę" aria-label="Usuń notatkę">
+            <TrashIcon size={16} />
+          </button>
           <button
             className="theme-toggle"
             onClick={onToggleTheme}
@@ -349,10 +429,6 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme }: Pr
             aria-label={theme === 'light' ? 'Przełącz na ciemny motyw' : 'Przełącz na jasny motyw'}
           >
             {theme === 'light' ? <MoonIcon /> : <SunIcon />}
-          </button>
-          <button className="btn btn-danger" onClick={() => setConfirmDelete(true)}>
-            <TrashIcon size={14} />
-            Usuń
           </button>
         </div>
       </div>
@@ -364,6 +440,7 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme }: Pr
         onChange={handleTitleChange}
         onBlur={handleTitleBlur}
         placeholder="Tytuł notatki..."
+        maxLength={80}
       />
 
       {/* Tags */}
@@ -376,14 +453,16 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme }: Pr
             </span>
           ))}
         </div>
-        <input
-          type="text"
-          className="tag-input"
-          placeholder="Dodaj tag (Enter)..."
-          value={tagInput}
-          onChange={(e) => setTagInput(e.target.value)}
-          onKeyDown={handleAddTag}
-        />
+        {tags.length < 3 && (
+          <input
+            type="text"
+            className="tag-input"
+            placeholder="Dodaj tag (Enter)..."
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={handleAddTag}
+          />
+        )}
       </div>
 
       {/* Find & Replace bar */}
@@ -439,9 +518,13 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme }: Pr
         </div>
       )}
 
-      {editor && <Toolbar editor={editor} />}
+      {editor && <Toolbar editor={editor} onInsertNoteLink={handleInsertNoteLink} />}
 
-      <div className="editor-container" onClick={() => editor?.chain().focus().run()}>
+      <div className="editor-container" onClick={(e) => {
+        const target = e.target as HTMLElement;
+        if (target.closest('.dtp-dropdown, .find-bar, input, select, button')) return;
+        editor?.chain().focus().run();
+      }}>
         <EditorContent editor={editor} />
       </div>
 
@@ -459,6 +542,38 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme }: Pr
             <div className="modal-actions">
               <button className="btn btn-secondary" onClick={() => setConfirmDelete(false)}>Anuluj</button>
               <button className="btn btn-danger" onClick={() => { setConfirmDelete(false); onDelete(); }}>Usuń</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Note link modal */}
+      {showNoteLinkModal && (
+        <div className="modal-overlay" onClick={() => setShowNoteLinkModal(false)}>
+          <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
+            <h3>Link do notatki</h3>
+            <input
+              type="text"
+              className="find-input"
+              placeholder="Szukaj notatki..."
+              value={noteLinkSearch}
+              onChange={(e) => setNoteLinkSearch(e.target.value)}
+              autoFocus
+              style={{ marginBottom: '12px' }}
+            />
+            <div className="note-link-list">
+              {allNotes
+                .filter((n) => n.title.toLowerCase().includes(noteLinkSearch.toLowerCase()))
+                .slice(0, 10)
+                .map((n) => (
+                  <button
+                    key={n.id}
+                    className="note-link-item"
+                    onClick={() => handleSelectNoteLink(n)}
+                  >
+                    {n.title}
+                  </button>
+                ))}
             </div>
           </div>
         </div>

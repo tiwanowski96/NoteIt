@@ -9,6 +9,7 @@ export interface Note {
   color?: string;
   deleted?: boolean;
   deletedAt?: string;
+  reminder?: string; // ISO date string
 }
 
 export type SortMode = 'updatedAt' | 'createdAt' | 'title';
@@ -24,10 +25,13 @@ export interface ElectronAPI {
   openNoteWindow: (noteId: string) => Promise<void>;
   setTheme: (theme: string) => Promise<void>;
   exportNote: (noteId: string, format: string) => Promise<void>;
+  importFiles: () => Promise<Note[]>;
   onShowAllNotes: (callback: () => void) => () => void;
   onShowLastNote: (callback: () => void) => () => void;
+  focusMainWindow: () => Promise<void>;
   onThemeChanged: (callback: (theme: string) => void) => () => void;
   onNotesUpdated: (callback: () => void) => () => void;
+  onPasteScreenshot: (callback: (dataUrl: string) => void) => () => void;
 }
 
 declare global {

@@ -13,6 +13,7 @@ interface Props {
   onExport: (noteId: string, format: string) => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
+  onShowShortcuts: () => void;
 }
 
 const colorMap = [
@@ -31,16 +32,25 @@ function getCardColor(colorKey: string | undefined, currentTheme: 'light' | 'dar
   return currentTheme === 'dark' ? found.dark : found.light;
 }
 
-function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPermanentDelete, onExport, theme, onToggleTheme }: Props) {
+function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPermanentDelete, onExport, theme, onToggleTheme, onShowShortcuts }: Props) {
   const [search, setSearch] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('updatedAt');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [showTrash, setShowTrash] = useState(false);
   const [filterTag, setFilterTag] = useState<string>('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmBulk, setConfirmBulk] = useState<'delete' | 'restore' | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
 
   const activeNotes = notes.filter((n) => !n.deleted);
   const trashedNotes = notes.filter((n) => n.deleted);
+
+  // Upcoming reminders (sorted by date, only future ones)
+  const upcomingReminders = activeNotes
+    .filter((n) => n.reminder && new Date(n.reminder) > new Date())
+    .sort((a, b) => new Date(a.reminder!).getTime() - new Date(b.reminder!).getTime())
+    .slice(0, 5);
 
   // Get all unique tags
   const allTags = Array.from(new Set(activeNotes.flatMap((n) => n.tags || [])));
@@ -158,7 +168,7 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
         <div className="notes-list-header-right">
           <button
             className={`btn-icon ${showTrash ? 'active-trash' : ''}`}
-            onClick={() => setShowTrash(!showTrash)}
+            onClick={() => { setShowTrash(!showTrash); setSelectedIds(new Set()); setSelectionMode(false); }}
             title="Kosz"
             aria-label="Kosz"
           >
@@ -168,6 +178,30 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
             </svg>
           </button>
           <button
+            className="btn-icon"
+            onClick={onShowShortcuts}
+            title="Skróty klawiszowe (?)"
+            aria-label="Skróty klawiszowe"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="2"/>
+              <line x1="6" y1="8" x2="6.01" y2="8"/><line x1="10" y1="8" x2="10.01" y2="8"/><line x1="14" y1="8" x2="14.01" y2="8"/><line x1="18" y1="8" x2="18.01" y2="8"/>
+              <line x1="8" y1="12" x2="16" y2="12"/>
+              <line x1="6" y1="16" x2="6.01" y2="16"/><line x1="18" y1="16" x2="18.01" y2="16"/>
+            </svg>
+          </button>
+          {!showTrash && (
+            <>
+              <button className="btn-icon" onClick={() => window.electronAPI.importFiles().then(() => {})} title="Importuj pliki .md/.txt" aria-label="Importuj">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </button>
+              <button className="btn btn-primary" onClick={onNew}>
+                <PlusIcon size={15} />
+                Nowa notatka
+              </button>
+            </>
+          )}
+          <button
             className="theme-toggle"
             onClick={onToggleTheme}
             title={theme === 'light' ? 'Ciemny motyw' : 'Jasny motyw'}
@@ -175,12 +209,6 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
           >
             {theme === 'light' ? <MoonIcon /> : <SunIcon />}
           </button>
-          {!showTrash && (
-            <button className="btn btn-primary" onClick={onNew}>
-              <PlusIcon size={15} />
-              Nowa notatka
-            </button>
-          )}
         </div>
       </div>
 
@@ -242,6 +270,114 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
         </div>
       </div>
 
+      {/* Selection toolbar for trash */}
+      {showTrash && trashedNotes.length > 0 && (
+        <div className="trash-toolbar">
+          <div className="trash-toolbar-left">
+            {!selectionMode ? (
+              <button className="btn btn-secondary btn-sm" onClick={() => setSelectionMode(true)}>
+                Zaznaczanie
+              </button>
+            ) : (
+              <>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    if (selectedIds.size === trashedNotes.length) {
+                      setSelectedIds(new Set());
+                    } else {
+                      setSelectedIds(new Set(trashedNotes.map((n) => n.id)));
+                    }
+                  }}
+                >
+                  {selectedIds.size === trashedNotes.length ? 'Odznacz wszystko' : 'Zaznacz wszystko'}
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => { setSelectionMode(false); setSelectedIds(new Set()); }}>
+                  Anuluj
+                </button>
+                {selectedIds.size > 0 && (
+                  <span className="trash-selected-count">{selectedIds.size} zaznaczonych</span>
+                )}
+              </>
+            )}
+          </div>
+          {selectionMode && selectedIds.size > 0 && (
+            <div className="trash-toolbar-right">
+              <button className="btn btn-secondary btn-sm" onClick={() => setConfirmBulk('restore')}>
+                Przywróć
+              </button>
+              <button className="btn btn-danger btn-sm" onClick={() => setConfirmBulk('delete')}>
+                Usuń na stałe
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Selection toolbar for main view */}
+      {!showTrash && activeNotes.length > 0 && (
+        <div className="trash-toolbar">
+          <div className="trash-toolbar-left">
+            {!selectionMode ? (
+              <button className="btn btn-secondary btn-sm" onClick={() => setSelectionMode(true)}>
+                Zaznaczanie
+              </button>
+            ) : (
+              <>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => {
+                    const currentDisplay = filterNotes(activeNotes);
+                    if (selectedIds.size === currentDisplay.length) {
+                      setSelectedIds(new Set());
+                    } else {
+                      setSelectedIds(new Set(currentDisplay.map((n) => n.id)));
+                    }
+                  }}
+                >
+                  {selectedIds.size === filterNotes(activeNotes).length ? 'Odznacz wszystko' : 'Zaznacz wszystko'}
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={() => { setSelectionMode(false); setSelectedIds(new Set()); }}>
+                  Anuluj
+                </button>
+                {selectedIds.size > 0 && (
+                  <span className="trash-selected-count">{selectedIds.size} zaznaczonych</span>
+                )}
+              </>
+            )}
+          </div>
+          {selectionMode && selectedIds.size > 0 && (
+            <div className="trash-toolbar-right">
+              <button className="btn btn-danger btn-sm" onClick={() => setConfirmBulk('delete')}>
+                Usuń zaznaczone
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Reminders section */}
+      {!showTrash && upcomingReminders.length > 0 && (
+        <div className="reminders-section">
+          <h4 className="reminders-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            Przypomnienia
+          </h4>
+          <div className="reminders-list">
+            {upcomingReminders.map((note) => (
+              <div key={note.id} className="reminder-item" onClick={() => onSelect(note)}>
+                <span className="reminder-item-title">{note.title}</span>
+                <span className="reminder-item-date">
+                  {new Date(note.reminder!).toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Notes display */}
       {displayNotes.length === 0 ? (
         <div className="empty-state">
@@ -266,8 +402,35 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
               key={note.id}
               className={`note-card ${viewMode === 'list' ? 'note-card-list' : ''} ${note.pinned ? 'pinned' : ''}`}
               style={getCardColor(note.color, theme) ? { backgroundColor: getCardColor(note.color, theme) } : undefined}
-              onClick={() => !showTrash && onSelect(note)}
+              onClick={() => {
+                if (selectionMode) {
+                  setSelectedIds((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(note.id)) next.delete(note.id);
+                    else next.add(note.id);
+                    return next;
+                  });
+                } else if (!showTrash) {
+                  onSelect(note);
+                }
+              }}
             >
+              {selectionMode && (
+                <input
+                  type="checkbox"
+                  className="trash-checkbox"
+                  checked={selectedIds.has(note.id)}
+                  onChange={() => {
+                    setSelectedIds((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(note.id)) next.delete(note.id);
+                      else next.add(note.id);
+                      return next;
+                    });
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              )}
               {note.pinned && (
                 <div className="pin-indicator" title="Przypięta">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1">
@@ -278,7 +441,7 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
               <div className="note-card-header">
                 <h3>{note.title || 'Bez tytułu'}</h3>
                 <div className="note-card-actions">
-                  {!showTrash && (
+                  {!showTrash && !selectionMode && (
                     <>
                       <button
                         className={`btn-icon btn-pin ${note.pinned ? 'pinned' : ''}`}
@@ -300,7 +463,7 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
                       </button>
                     </>
                   )}
-                  {showTrash && (
+                  {showTrash && !selectionMode && (
                     <>
                       <button
                         className="btn-icon btn-restore"
@@ -331,7 +494,7 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
                   ))}
                 </div>
               )}
-              <p className="note-preview">{stripHtml(note.content).slice(0, viewMode === 'list' ? 200 : 120)}</p>
+              <p className="note-preview">{stripHtml(note.content).slice(0, viewMode === 'list' ? 150 : 80)}</p>
               <div className="note-dates">
                 <span className="note-date" title="Utworzono">
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -356,6 +519,42 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
             <div className="modal-actions">
               <button className="btn btn-secondary" onClick={() => setConfirmDelete(null)}>Anuluj</button>
               <button className="btn btn-danger" onClick={confirmDeleteAction}>Usuń</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk action confirmation modal */}
+      {confirmBulk && (
+        <div className="modal-overlay" onClick={() => setConfirmBulk(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>
+              {confirmBulk === 'delete' && showTrash && `Usunąć ${selectedIds.size} notatek na stałe?`}
+              {confirmBulk === 'delete' && !showTrash && `Przenieść ${selectedIds.size} notatek do kosza?`}
+              {confirmBulk === 'restore' && `Przywrócić ${selectedIds.size} notatek?`}
+            </h3>
+            <p>
+              {confirmBulk === 'delete' && showTrash && 'Tej operacji nie można cofnąć.'}
+              {confirmBulk === 'delete' && !showTrash && 'Notatki trafią do kosza na 30 dni.'}
+              {confirmBulk === 'restore' && 'Notatki wrócą na listę.'}
+            </p>
+            <div className="modal-actions">
+              <button className="btn btn-secondary" onClick={() => setConfirmBulk(null)}>Anuluj</button>
+              <button
+                className={confirmBulk === 'delete' ? 'btn btn-danger' : 'btn btn-primary'}
+                onClick={() => {
+                  selectedIds.forEach((id) => {
+                    if (confirmBulk === 'delete' && showTrash) onPermanentDelete(id);
+                    else if (confirmBulk === 'delete' && !showTrash) onDelete(id);
+                    else onRestore(id);
+                  });
+                  setSelectedIds(new Set());
+                  setSelectionMode(false);
+                  setConfirmBulk(null);
+                }}
+              >
+                {confirmBulk === 'delete' ? 'Usuń' : 'Przywróć'}
+              </button>
             </div>
           </div>
         </div>

@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openNoteWindow: (noteId: string) => ipcRenderer.invoke('open-note-window', noteId),
   setTheme: (theme: string) => ipcRenderer.invoke('set-theme', theme),
   exportNote: (noteId: string, format: string) => ipcRenderer.invoke('export-note', noteId, format),
+  importFiles: () => ipcRenderer.invoke('import-files'),
   onShowAllNotes: (callback: () => void) => {
     ipcRenderer.on('show-all-notes', callback);
     return () => ipcRenderer.removeListener('show-all-notes', callback);
@@ -18,6 +19,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('show-last-note', callback);
     return () => ipcRenderer.removeListener('show-last-note', callback);
   },
+  focusMainWindow: () => ipcRenderer.invoke('focus-main-window'),
   onThemeChanged: (callback: (theme: string) => void) => {
     const handler = (_event: any, theme: string) => callback(theme);
     ipcRenderer.on('theme-changed', handler);
@@ -26,5 +28,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onNotesUpdated: (callback: () => void) => {
     ipcRenderer.on('notes-updated', callback);
     return () => ipcRenderer.removeListener('notes-updated', callback);
+  },
+  onPasteScreenshot: (callback: (dataUrl: string) => void) => {
+    const handler = (_event: any, dataUrl: string) => callback(dataUrl);
+    ipcRenderer.on('paste-screenshot', handler);
+    return () => ipcRenderer.removeListener('paste-screenshot', handler);
   },
 });
