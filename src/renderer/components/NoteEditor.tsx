@@ -21,6 +21,7 @@ import EmojiPicker from './EmojiPicker';
 import TableOfContents from './TableOfContents';
 import Breadcrumbs from './Breadcrumbs';
 import NoteChildren from './NoteChildren';
+import SlashCommands from './SlashCommands';
 
 interface Props {
   note: Note;
@@ -80,6 +81,7 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
   const [showReplace, setShowReplace] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
+  const [slashCommand, setSlashCommand] = useState<{ top: number; left: number } | null>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const editor = useEditor({
@@ -122,6 +124,33 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
       // Re-apply search highlights after content change
       if (findText) {
         updateSearchHighlights(findText, activeMatch);
+      }
+    },
+    onTransaction: ({ editor, transaction }) => {
+      // Detect "/" typed at beginning of line or after space
+      if (!transaction.docChanged) return;
+      const { from } = editor.state.selection;
+      const textBefore = editor.state.doc.textBetween(Math.max(0, from - 1), from);
+      if (textBefore === '/') {
+        // Check if it's at start of block or after whitespace
+        const charBeforeSlash = from > 1 ? editor.state.doc.textBetween(from - 2, from - 1) : '';
+        if (charBeforeSlash === '' || charBeforeSlash === ' ' || charBeforeSlash === '\n' || from <= 1) {
+          // Get cursor position on screen
+          const coords = editor.view.coordsAtPos(from);
+          const editorRect = editor.view.dom.closest('.editor-container')?.getBoundingClientRect();
+          if (editorRect) {
+            setSlashCommand({
+              top: coords.bottom - editorRect.top + 4,
+              left: coords.left - editorRect.left,
+            });
+          }
+        }
+      } else if (slashCommand) {
+        // Close if user typed something else or moved away
+        const textCheck = editor.state.doc.textBetween(Math.max(0, from - 20), from);
+        if (!textCheck.includes('/')) {
+          setSlashCommand(null);
+        }
       }
     },
   });
@@ -581,6 +610,13 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
         editor?.chain().focus().run();
       }}>
         <EditorContent editor={editor} />
+        {slashCommand && editor && (
+          <SlashCommands
+            editor={editor}
+            position={slashCommand}
+            onClose={() => setSlashCommand(null)}
+          />
+        )}
       </div>
 
       {/* Children notes */}

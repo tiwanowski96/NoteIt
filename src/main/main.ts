@@ -77,9 +77,7 @@ function createMainWindow(): void {
     minWidth: 600,
     minHeight: 450,
     show: false,
-    frame: true,
-    autoHideMenuBar: true,
-    titleBarStyle: 'default',
+    frame: false,
     icon: getIconPath(),
     backgroundColor: '#ffffff',
     webPreferences: {
@@ -126,9 +124,7 @@ function createNoteWindow(noteId: string, mode: string = 'editor'): void {
     minWidth: 500,
     minHeight: 400,
     show: false,
-    frame: true,
-    autoHideMenuBar: true,
-    titleBarStyle: 'default',
+    frame: false,
     icon: getIconPath(),
     backgroundColor: '#ffffff',
     webPreferences: {
@@ -235,6 +231,16 @@ function updateTrayMenu(): void {
     {
       label: 'Zamknij NoteIt',
       click: () => {
+        if (pomodoroIsRunning) {
+          const choice = dialog.showMessageBoxSync({
+            type: 'question',
+            buttons: ['Anuluj', 'Zamknij'],
+            defaultId: 0,
+            title: 'NoteIt',
+            message: 'Pomodoro jest aktywne. Zamknac NoteIt?',
+          });
+          if (choice === 0) return;
+        }
         isQuitting = true;
         app.quit();
       },
@@ -536,6 +542,16 @@ ipcMain.handle('get-notes', () => {
   return store.get('notes');
 });
 
+ipcMain.handle('window-action', (_event, action: string) => {
+  const win = BrowserWindow.fromWebContents(_event.sender);
+  if (!win || win.isDestroyed()) return;
+  switch (action) {
+    case 'minimize': win.minimize(); break;
+    case 'maximize': win.isMaximized() ? win.unmaximize() : win.maximize(); break;
+    case 'close': win.close(); break;
+  }
+});
+
 ipcMain.handle('save-note', (_event, note: Note) => {
   const notes = store.get('notes');
   const existingIndex = notes.findIndex((n: Note) => n.id === note.id);
@@ -665,6 +681,10 @@ ipcMain.handle('set-theme', (_event, theme: string) => {
   }
 });
 
+ipcMain.handle('set-pomodoro-running', (_event, running: boolean) => {
+  pomodoroIsRunning = running;
+});
+
 ipcMain.handle('set-always-on-top', (_event, value: boolean) => {
   const senderWindow = BrowserWindow.fromWebContents(_event.sender);
   if (senderWindow && !senderWindow.isDestroyed()) {
@@ -673,6 +693,7 @@ ipcMain.handle('set-always-on-top', (_event, value: boolean) => {
 });
 
 let pomodoroMiniWindow: BrowserWindow | null = null;
+let pomodoroIsRunning = false;
 
 ipcMain.handle('open-pomodoro-mini', (_event, mode: string, timeLeft: number, isRunning: boolean) => {
   if (pomodoroMiniWindow && !pomodoroMiniWindow.isDestroyed()) {
@@ -763,6 +784,7 @@ ipcMain.handle('close-pomodoro-mini', () => {
 });
 
 ipcMain.handle('update-pomodoro-mini', (_event, mode: string, timeLeft: number, isRunning: boolean, theme: string) => {
+  pomodoroIsRunning = isRunning;
   if (pomodoroMiniWindow && !pomodoroMiniWindow.isDestroyed()) {
     const formatTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
     pomodoroMiniWindow.webContents.send('pomodoro-mini-update', {
@@ -772,6 +794,19 @@ ipcMain.handle('update-pomodoro-mini', (_event, mode: string, timeLeft: number, 
       theme: theme || 'dark',
     });
   }
+});
+
+ipcMain.on('confirm-quit', (_event, canQuit: boolean) => {
+  if (canQuit) {
+    isQuitting = true;
+    app.quit();
+  }
+  // If !canQuit, user cancelled - do nothing
+});
+
+ipcMain.on('force-quit', () => {
+  isQuitting = true;
+  app.quit();
 });
 
 ipcMain.on('pomodoro-mini-action', (_event, action: string) => {

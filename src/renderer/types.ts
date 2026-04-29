@@ -20,6 +20,7 @@ export type ViewMode = 'grid' | 'list' | 'kanban';
 
 export interface ElectronAPI {
   getNotes: () => Promise<Note[]>;
+  windowAction: (action: string) => Promise<void>;
   saveNote: (note: Note) => Promise<Note[]>;
   deleteNote: (noteId: string) => Promise<Note[]>;
   permanentDeleteNote: (noteId: string) => Promise<Note[]>;
@@ -27,11 +28,15 @@ export interface ElectronAPI {
   saveImage: (dataUrl: string) => Promise<string>;
   openNoteWindow: (noteId: string) => Promise<void>;
   setTheme: (theme: string) => Promise<void>;
+  setPomodoroRunning: (running: boolean) => Promise<void>;
   setAlwaysOnTop: (value: boolean) => Promise<void>;
   openPomodoroMini: (mode: string, timeLeft: number, isRunning: boolean) => Promise<void>;
   closePomodoroMini: () => Promise<void>;
   updatePomodoroMini: (mode: string, timeLeft: number, isRunning: boolean, theme: string) => Promise<void>;
   onPomodoroAction: (callback: (action: string) => void) => () => void;
+  onCheckQuit: (callback: () => void) => () => void;
+  confirmQuit: (canQuit: boolean) => void;
+  forceQuit: () => void;
   exportNote: (noteId: string, format: string) => Promise<void>;
   importFiles: () => Promise<Note[]>;
   exportZip: (noteIds: string[]) => Promise<void>;

@@ -9,6 +9,7 @@ import CommandPalette from './components/CommandPalette';
 import Settings from './components/Settings';
 import Stats from './components/Stats';
 import PomodoroTimer from './components/PomodoroTimer';
+import WindowControls from './components/WindowControls';
 
 function App() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -61,6 +62,7 @@ function App() {
   // Pomodoro background timer
   useEffect(() => {
     if (pomodoroRunning) {
+      window.electronAPI.setPomodoroRunning(true);
       pomodoroIntervalRef.current = setInterval(() => {
         setPomodoroTimeLeft((prev) => {
           if (prev <= 1) {
@@ -81,6 +83,7 @@ function App() {
     }
     return () => {
       if (pomodoroIntervalRef.current) clearInterval(pomodoroIntervalRef.current);
+      window.electronAPI.setPomodoroRunning(false);
     };
   }, [pomodoroRunning, pomodoroMode, pomodoroWork, pomodoroBreak]);
 
@@ -365,6 +368,7 @@ function App() {
   if ((windowMode === 'editor' || windowMode === 'last') && selectedNote) {
     return (
       <div className="app">
+        <WindowControls />
         <NoteEditor
           note={selectedNote}
           onSave={handleSaveNote}
@@ -386,6 +390,7 @@ function App() {
   // Main list window
   return (
     <div className="app">
+      <WindowControls />
       {view === 'list' ? (
         <NotesList
           notes={notes}

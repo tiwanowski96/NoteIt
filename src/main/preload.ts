@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
   getNotes: () => ipcRenderer.invoke('get-notes'),
+  windowAction: (action: string) => ipcRenderer.invoke('window-action', action),
   saveNote: (note: any) => ipcRenderer.invoke('save-note', note),
   deleteNote: (noteId: string) => ipcRenderer.invoke('delete-note', noteId),
   permanentDeleteNote: (noteId: string) => ipcRenderer.invoke('permanent-delete-note', noteId),
@@ -9,6 +10,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveImage: (dataUrl: string) => ipcRenderer.invoke('save-image', dataUrl),
   openNoteWindow: (noteId: string) => ipcRenderer.invoke('open-note-window', noteId),
   setTheme: (theme: string) => ipcRenderer.invoke('set-theme', theme),
+  setPomodoroRunning: (running: boolean) => ipcRenderer.invoke('set-pomodoro-running', running),
   setAlwaysOnTop: (value: boolean) => ipcRenderer.invoke('set-always-on-top', value),
   openPomodoroMini: (mode: string, timeLeft: number, isRunning: boolean) => ipcRenderer.invoke('open-pomodoro-mini', mode, timeLeft, isRunning),
   closePomodoroMini: () => ipcRenderer.invoke('close-pomodoro-mini'),
@@ -18,6 +20,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('pomodoro-action', handler);
     return () => ipcRenderer.removeListener('pomodoro-action', handler);
   },
+  onCheckQuit: (callback: () => void) => {
+    ipcRenderer.on('check-quit', callback);
+    return () => ipcRenderer.removeListener('check-quit', callback);
+  },
+  confirmQuit: (canQuit: boolean) => ipcRenderer.send('confirm-quit', canQuit),
+  forceQuit: () => ipcRenderer.send('force-quit'),
   exportNote: (noteId: string, format: string) => ipcRenderer.invoke('export-note', noteId, format),
   importFiles: () => ipcRenderer.invoke('import-files'),
   exportZip: (noteIds: string[]) => ipcRenderer.invoke('export-zip', noteIds),
