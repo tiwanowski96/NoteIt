@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Note, SortMode, ViewMode } from '../types';
 import { PlusIcon, TrashIcon, SearchIcon, NoteIcon, SunIcon, MoonIcon } from './Icons';
+import KanbanView from './KanbanView';
 
 interface Props {
   notes: Note[];
@@ -14,6 +15,10 @@ interface Props {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onShowShortcuts: () => void;
+  onShowSettings: () => void;
+  onShowStats: () => void;
+  onShowCommandPalette: () => void;
+  onKanbanStatusChange: (noteId: string, status: 'todo' | 'inprogress' | 'done') => void;
 }
 
 const colorMap = [
@@ -32,7 +37,7 @@ function getCardColor(colorKey: string | undefined, currentTheme: 'light' | 'dar
   return currentTheme === 'dark' ? found.dark : found.light;
 }
 
-function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPermanentDelete, onExport, theme, onToggleTheme, onShowShortcuts }: Props) {
+function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPermanentDelete, onExport, theme, onToggleTheme, onShowShortcuts, onShowSettings, onShowStats, onShowCommandPalette, onKanbanStatusChange }: Props) {
   const [search, setSearch] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('updatedAt');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -179,6 +184,26 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
           </button>
           <button
             className="btn-icon"
+            onClick={onShowCommandPalette}
+            title="Szukaj notatki (Ctrl+P)"
+            aria-label="Szukaj notatki"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </button>
+          <button
+            className="btn-icon"
+            onClick={onShowStats}
+            title="Statystyki"
+            aria-label="Statystyki"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+          </button>
+          <button
+            className="btn-icon"
             onClick={onShowShortcuts}
             title="Skróty klawiszowe (?)"
             aria-label="Skróty klawiszowe"
@@ -188,6 +213,16 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
               <line x1="6" y1="8" x2="6.01" y2="8"/><line x1="10" y1="8" x2="10.01" y2="8"/><line x1="14" y1="8" x2="14.01" y2="8"/><line x1="18" y1="8" x2="18.01" y2="8"/>
               <line x1="8" y1="12" x2="16" y2="12"/>
               <line x1="6" y1="16" x2="6.01" y2="16"/><line x1="18" y1="16" x2="18.01" y2="16"/>
+            </svg>
+          </button>
+          <button
+            className="btn-icon"
+            onClick={onShowSettings}
+            title="Ustawienia"
+            aria-label="Ustawienia"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68 1.65 1.65 0 0 0 9 3V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
             </svg>
           </button>
           {!showTrash && (
@@ -265,6 +300,14 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
               aria-label="Widok listy"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            </button>
+            <button
+              className={`view-btn ${viewMode === 'kanban' ? 'active' : ''}`}
+              onClick={() => setViewMode('kanban')}
+              title="Widok kanban"
+              aria-label="Widok kanban"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="8" rx="1"/></svg>
             </button>
           </div>
         </div>
@@ -379,7 +422,13 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
       )}
 
       {/* Notes display */}
-      {displayNotes.length === 0 ? (
+      {viewMode === 'kanban' && !showTrash ? (
+        <KanbanView
+          notes={filterNotes(activeNotes)}
+          onSelect={onSelect}
+          onStatusChange={onKanbanStatusChange}
+        />
+      ) : displayNotes.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">
             <NoteIcon />

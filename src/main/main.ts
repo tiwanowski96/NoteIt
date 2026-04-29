@@ -172,6 +172,32 @@ function createTray(): void {
   }
 
   tray = new Tray(trayIcon);
+  updateTrayMenu();
+
+  tray.on('double-click', () => {
+    createMainWindow();
+  });
+}
+
+function updateTrayMenu(): void {
+  if (!tray) return;
+
+  const notes = store.get('notes').filter((n: Note) => !n.deleted);
+  const recent = [...notes]
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, 5);
+
+  const recentItems: Electron.MenuItemConstructorOptions[] = recent.length > 0
+    ? [
+        { type: 'separator' },
+        { label: 'Ostatnie:', enabled: false },
+        ...recent.map((n) => ({
+          label: n.title.slice(0, 40),
+          click: () => createNoteWindow(n.id),
+        })),
+        { type: 'separator' } as Electron.MenuItemConstructorOptions,
+      ]
+    : [{ type: 'separator' }];
 
   const contextMenu = Menu.buildFromTemplate([
     {
@@ -182,7 +208,7 @@ function createTray(): void {
       label: 'Ostatnia notatka',
       click: () => showLastNote(),
     },
-    { type: 'separator' },
+    ...recentItems,
     {
       label: 'Zamknij NoteIt',
       click: () => {
@@ -194,10 +220,6 @@ function createTray(): void {
 
   tray.setToolTip('NoteIt');
   tray.setContextMenu(contextMenu);
-
-  tray.on('double-click', () => {
-    createMainWindow();
-  });
 }
 
 function createDefaultIcon(): Electron.NativeImage {
@@ -384,6 +406,7 @@ function broadcastUpdate(excludeSenderId?: number): void {
       win.webContents.send('notes-updated');
     }
   }
+  updateTrayMenu();
 }
 
 function stripHtml(html: string): string {
@@ -492,6 +515,13 @@ ipcMain.handle('set-theme', (_event, theme: string) => {
     if (!win.isDestroyed()) {
       win.webContents.send('theme-changed', theme);
     }
+  }
+});
+
+ipcMain.handle('set-always-on-top', (_event, value: boolean) => {
+  const senderWindow = BrowserWindow.fromWebContents(_event.sender);
+  if (senderWindow && !senderWindow.isDestroyed()) {
+    senderWindow.setAlwaysOnTop(value);
   }
 });
 

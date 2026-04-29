@@ -9,11 +9,12 @@ export interface Note {
   color?: string;
   deleted?: boolean;
   deletedAt?: string;
-  reminder?: string; // ISO date string
+  reminder?: string;
+  kanbanStatus?: 'todo' | 'inprogress' | 'done';
 }
 
 export type SortMode = 'updatedAt' | 'createdAt' | 'title';
-export type ViewMode = 'grid' | 'list';
+export type ViewMode = 'grid' | 'list' | 'kanban';
 
 export interface ElectronAPI {
   getNotes: () => Promise<Note[]>;
@@ -24,6 +25,7 @@ export interface ElectronAPI {
   saveImage: (dataUrl: string) => Promise<string>;
   openNoteWindow: (noteId: string) => Promise<void>;
   setTheme: (theme: string) => Promise<void>;
+  setAlwaysOnTop: (value: boolean) => Promise<void>;
   exportNote: (noteId: string, format: string) => Promise<void>;
   importFiles: () => Promise<Note[]>;
   onShowAllNotes: (callback: () => void) => () => void;

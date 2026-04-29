@@ -25,6 +25,9 @@ interface Props {
   onDelete: () => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
+  fontSize: number;
+  alwaysOnTop: boolean;
+  onToggleAlwaysOnTop: () => void;
 }
 
 const noteColors = [
@@ -53,7 +56,7 @@ function toLocalDatetimeString(isoString: string): string {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
-function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme }: Props) {
+function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, fontSize, alwaysOnTop, onToggleAlwaysOnTop }: Props) {
   const [title, setTitle] = useState(note.title);
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>(note.tags || []);
@@ -421,6 +424,16 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme }: Pr
           />
           <button className="btn-icon btn-delete" onClick={() => setConfirmDelete(true)} title="Usuń notatkę" aria-label="Usuń notatkę">
             <TrashIcon size={16} />
+          </button>
+          <button
+            className={`btn-icon ${alwaysOnTop ? 'reminder-active' : ''}`}
+            onClick={onToggleAlwaysOnTop}
+            title={alwaysOnTop ? 'Wyłącz zawsze na wierzchu' : 'Zawsze na wierzchu'}
+            aria-label="Zawsze na wierzchu"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill={alwaysOnTop ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2C9.243 2 7 4.243 7 7c0 2.475 1.639 4.57 3.89 5.271L12 22l1.11-9.729C15.361 11.57 17 9.475 17 7c0-2.757-2.243-5-5-5z"/>
+            </svg>
           </button>
           <button
             className="theme-toggle"

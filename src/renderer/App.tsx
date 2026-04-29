@@ -5,6 +5,9 @@ import NoteEditor from './components/NoteEditor';
 import TemplateModal, { Template } from './components/Templates';
 import ShortcutsPanel from './components/ShortcutsPanel';
 import Onboarding from './components/Onboarding';
+import CommandPalette from './components/CommandPalette';
+import Settings from './components/Settings';
+import Stats from './components/Stats';
 
 function App() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -14,6 +17,11 @@ function App() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [fontSize, setFontSize] = useState(15);
+  const [alwaysOnTop, setAlwaysOnTop] = useState(false);
 
   const params = new URLSearchParams(window.location.search);
   const windowMode = params.get('mode');
@@ -30,6 +38,12 @@ function App() {
     if (savedTheme) {
       setTheme(savedTheme);
       document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+    const savedFontSize = localStorage.getItem('noteit-font-size');
+    if (savedFontSize) {
+      const size = Number(savedFontSize);
+      setFontSize(size);
+      document.documentElement.style.setProperty('--app-font-size', `${size}px`);
     }
     // Show onboarding on first launch
     if (!windowMode && !localStorage.getItem('noteit-onboarded')) {
@@ -109,6 +123,10 @@ function App() {
         e.preventDefault();
         handleNewNote();
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault();
+        setShowCommandPalette(true);
+      }
       if (e.key === '?' && !e.ctrlKey && !e.metaKey && !(e.target as HTMLElement).matches('input, textarea, [contenteditable]')) {
         e.preventDefault();
         setShowShortcuts(true);
@@ -124,6 +142,18 @@ function App() {
     localStorage.setItem('noteit-theme', newTheme);
     document.documentElement.setAttribute('data-theme', newTheme);
     window.electronAPI.setTheme(newTheme);
+  };
+
+  const handleFontSizeChange = (size: number) => {
+    setFontSize(size);
+    localStorage.setItem('noteit-font-size', String(size));
+    document.documentElement.style.setProperty('--app-font-size', `${size}px`);
+  };
+
+  const handleToggleAlwaysOnTop = () => {
+    const newVal = !alwaysOnTop;
+    setAlwaysOnTop(newVal);
+    window.electronAPI.setAlwaysOnTop(newVal);
   };
 
   const handleNewNote = () => {
@@ -208,6 +238,14 @@ function App() {
     window.electronAPI.exportNote(id, format);
   };
 
+  const handleKanbanStatusChange = async (noteId: string, status: 'todo' | 'inprogress' | 'done') => {
+    const note = notes.find((n) => n.id === noteId);
+    if (note) {
+      await window.electronAPI.saveNote({ ...note, kanbanStatus: status });
+      loadNotes();
+    }
+  };
+
   const handleBack = () => {
     if (windowMode === 'editor' || windowMode === 'last') {
       window.electronAPI.focusMainWindow();
@@ -230,6 +268,9 @@ function App() {
           onDelete={() => handleDeleteNote(selectedNote.id)}
           theme={theme}
           onToggleTheme={toggleTheme}
+          fontSize={fontSize}
+          alwaysOnTop={alwaysOnTop}
+          onToggleAlwaysOnTop={handleToggleAlwaysOnTop}
         />
       </div>
     );
@@ -251,6 +292,10 @@ function App() {
           theme={theme}
           onToggleTheme={toggleTheme}
           onShowShortcuts={() => setShowShortcuts(true)}
+          onShowSettings={() => setShowSettings(true)}
+          onShowStats={() => setShowStats(true)}
+          onShowCommandPalette={() => setShowCommandPalette(true)}
+          onKanbanStatusChange={handleKanbanStatusChange}
         />
       ) : (
         <NoteEditor
@@ -260,6 +305,9 @@ function App() {
           onDelete={() => selectedNote && handleDeleteNote(selectedNote.id)}
           theme={theme}
           onToggleTheme={toggleTheme}
+          fontSize={fontSize}
+          alwaysOnTop={alwaysOnTop}
+          onToggleAlwaysOnTop={handleToggleAlwaysOnTop}
         />
       )}
       {showTemplates && (
@@ -276,6 +324,23 @@ function App() {
           setShowOnboarding(false);
           localStorage.setItem('noteit-onboarded', 'true');
         }} />
+      )}
+      {showCommandPalette && (
+        <CommandPalette
+          notes={notes}
+          onSelect={(note) => { setShowCommandPalette(false); handleSelectNote(note); }}
+          onClose={() => setShowCommandPalette(false)}
+        />
+      )}
+      {showSettings && (
+        <Settings
+          fontSize={fontSize}
+          onFontSizeChange={handleFontSizeChange}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+      {showStats && (
+        <Stats notes={notes} onClose={() => setShowStats(false)} />
       )}
     </div>
   );

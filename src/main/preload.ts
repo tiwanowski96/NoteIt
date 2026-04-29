@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveImage: (dataUrl: string) => ipcRenderer.invoke('save-image', dataUrl),
   openNoteWindow: (noteId: string) => ipcRenderer.invoke('open-note-window', noteId),
   setTheme: (theme: string) => ipcRenderer.invoke('set-theme', theme),
+  setAlwaysOnTop: (value: boolean) => ipcRenderer.invoke('set-always-on-top', value),
   exportNote: (noteId: string, format: string) => ipcRenderer.invoke('export-note', noteId, format),
   importFiles: () => ipcRenderer.invoke('import-files'),
   onShowAllNotes: (callback: () => void) => {
