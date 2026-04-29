@@ -17,6 +17,10 @@ import Toolbar from './Toolbar';
 import { ArrowLeftIcon, TrashIcon, SunIcon, MoonIcon } from './Icons';
 import { SearchHighlightExtension, searchHighlightPluginKey, getSearchDecorations } from './SearchHighlight';
 import DateTimePicker from './DateTimePicker';
+import EmojiPicker from './EmojiPicker';
+import TableOfContents from './TableOfContents';
+import Breadcrumbs from './Breadcrumbs';
+import NoteChildren from './NoteChildren';
 
 interface Props {
   note: Note;
@@ -28,6 +32,9 @@ interface Props {
   fontSize: number;
   alwaysOnTop: boolean;
   onToggleAlwaysOnTop: () => void;
+  allNotes?: Note[];
+  onNavigateNote?: (noteId: string) => void;
+  onCreateChild?: (parentId: string) => void;
 }
 
 const noteColors = [
@@ -56,7 +63,7 @@ function toLocalDatetimeString(isoString: string): string {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
-function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, fontSize, alwaysOnTop, onToggleAlwaysOnTop }: Props) {
+function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, fontSize, alwaysOnTop, onToggleAlwaysOnTop, allNotes, onNavigateNote, onCreateChild }: Props) {
   const [title, setTitle] = useState(note.title);
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>(note.tags || []);
@@ -72,6 +79,7 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
   const [activeMatch, setActiveMatch] = useState(0);
   const [showReplace, setShowReplace] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const editor = useEditor({
@@ -369,12 +377,12 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
 
   // Note linking
   const [showNoteLinkModal, setShowNoteLinkModal] = useState(false);
-  const [allNotes, setAllNotes] = useState<Note[]>([]);
+  const [linkableNotes, setLinkableNotes] = useState<Note[]>([]);
   const [noteLinkSearch, setNoteLinkSearch] = useState('');
 
   const handleInsertNoteLink = async () => {
     const notes = await window.electronAPI.getNotes();
-    setAllNotes(notes.filter((n) => !n.deleted && n.id !== note.id));
+    setLinkableNotes(notes.filter((n) => !n.deleted && n.id !== note.id));
     setShowNoteLinkModal(true);
     setNoteLinkSearch('');
   };
@@ -456,6 +464,15 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
         maxLength={80}
       />
 
+      {/* Breadcrumbs */}
+      {allNotes && note.parentId && (
+        <Breadcrumbs
+          note={note}
+          allNotes={allNotes}
+          onNavigate={(id) => onNavigateNote?.(id)}
+        />
+      )}
+
       {/* Tags */}
       <div className="tags-section">
         <div className="tags-list">
@@ -531,7 +548,32 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
         </div>
       )}
 
-      {editor && <Toolbar editor={editor} onInsertNoteLink={handleInsertNoteLink} />}
+      {editor && (
+        <div className="editor-toolbar-row">
+          <Toolbar editor={editor} onInsertNoteLink={handleInsertNoteLink} />
+          <div className="toolbar-extras">
+            <div className="emoji-wrapper">
+              <button
+                className="btn-icon"
+                onClick={() => setShowEmoji(!showEmoji)}
+                title="Emoji"
+                aria-label="Wstaw emoji"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
+                </svg>
+              </button>
+              {showEmoji && (
+                <EmojiPicker
+                  onSelect={(emoji) => editor.chain().focus().insertContent(emoji).run()}
+                  onClose={() => setShowEmoji(false)}
+                />
+              )}
+            </div>
+            <TableOfContents editor={editor} />
+          </div>
+        </div>
+      )}
 
       <div className="editor-container" onClick={(e) => {
         const target = e.target as HTMLElement;
@@ -540,6 +582,17 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
       }}>
         <EditorContent editor={editor} />
       </div>
+
+      {/* Children notes */}
+      {allNotes && (
+        <NoteChildren
+          note={note}
+          allNotes={allNotes}
+          onSelect={(id) => onNavigateNote?.(id)}
+          onCreateChild={(parentId) => onCreateChild?.(parentId)}
+          onMoveToRoot={(id) => {}}
+        />
+      )}
 
       <div className="editor-footer">
         <span className="hint">Ctrl+V wklej screenshot | Ctrl+F szukaj | Przeciągnij obraz</span>
@@ -575,7 +628,7 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
               style={{ marginBottom: '12px' }}
             />
             <div className="note-link-list">
-              {allNotes
+              {linkableNotes
                 .filter((n) => n.title.toLowerCase().includes(noteLinkSearch.toLowerCase()))
                 .slice(0, 10)
                 .map((n) => (

@@ -10,8 +10,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openNoteWindow: (noteId: string) => ipcRenderer.invoke('open-note-window', noteId),
   setTheme: (theme: string) => ipcRenderer.invoke('set-theme', theme),
   setAlwaysOnTop: (value: boolean) => ipcRenderer.invoke('set-always-on-top', value),
+  openPomodoroMini: (mode: string, timeLeft: number, isRunning: boolean) => ipcRenderer.invoke('open-pomodoro-mini', mode, timeLeft, isRunning),
+  closePomodoroMini: () => ipcRenderer.invoke('close-pomodoro-mini'),
+  updatePomodoroMini: (mode: string, timeLeft: number, isRunning: boolean, theme: string) => ipcRenderer.invoke('update-pomodoro-mini', mode, timeLeft, isRunning, theme),
+  onPomodoroAction: (callback: (action: string) => void) => {
+    const handler = (_event: any, action: string) => callback(action);
+    ipcRenderer.on('pomodoro-action', handler);
+    return () => ipcRenderer.removeListener('pomodoro-action', handler);
+  },
   exportNote: (noteId: string, format: string) => ipcRenderer.invoke('export-note', noteId, format),
   importFiles: () => ipcRenderer.invoke('import-files'),
+  exportZip: (noteIds: string[]) => ipcRenderer.invoke('export-zip', noteIds),
   onShowAllNotes: (callback: () => void) => {
     ipcRenderer.on('show-all-notes', callback);
     return () => ipcRenderer.removeListener('show-all-notes', callback);
@@ -21,6 +30,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('show-last-note', callback);
   },
   focusMainWindow: () => ipcRenderer.invoke('focus-main-window'),
+  moveNoteToParent: (noteId: string, parentId: string | null) => ipcRenderer.invoke('move-note-to-parent', noteId, parentId),
+  createChildNote: (parentId: string, title: string) => ipcRenderer.invoke('create-child-note', parentId, title),
   onThemeChanged: (callback: (theme: string) => void) => {
     const handler = (_event: any, theme: string) => callback(theme);
     ipcRenderer.on('theme-changed', handler);

@@ -11,6 +11,8 @@ export interface Note {
   deletedAt?: string;
   reminder?: string;
   kanbanStatus?: 'todo' | 'inprogress' | 'done';
+  parentId?: string;
+  childrenOrder?: string[];
 }
 
 export type SortMode = 'updatedAt' | 'createdAt' | 'title';
@@ -26,11 +28,18 @@ export interface ElectronAPI {
   openNoteWindow: (noteId: string) => Promise<void>;
   setTheme: (theme: string) => Promise<void>;
   setAlwaysOnTop: (value: boolean) => Promise<void>;
+  openPomodoroMini: (mode: string, timeLeft: number, isRunning: boolean) => Promise<void>;
+  closePomodoroMini: () => Promise<void>;
+  updatePomodoroMini: (mode: string, timeLeft: number, isRunning: boolean, theme: string) => Promise<void>;
+  onPomodoroAction: (callback: (action: string) => void) => () => void;
   exportNote: (noteId: string, format: string) => Promise<void>;
   importFiles: () => Promise<Note[]>;
+  exportZip: (noteIds: string[]) => Promise<void>;
   onShowAllNotes: (callback: () => void) => () => void;
   onShowLastNote: (callback: () => void) => () => void;
   focusMainWindow: () => Promise<void>;
+  moveNoteToParent: (noteId: string, parentId: string | null) => Promise<Note[]>;
+  createChildNote: (parentId: string, title: string) => Promise<string>;
   onThemeChanged: (callback: (theme: string) => void) => () => void;
   onNotesUpdated: (callback: () => void) => () => void;
   onPasteScreenshot: (callback: (dataUrl: string) => void) => () => void;

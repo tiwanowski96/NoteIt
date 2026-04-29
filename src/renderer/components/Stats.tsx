@@ -16,13 +16,26 @@ function Stats({ notes, onClose }: Props) {
   const totalTags = new Set(activeNotes.flatMap((n) => n.tags || [])).size;
   const pinnedCount = activeNotes.filter((n) => n.pinned).length;
 
+  function toLocalDateStr(dateStr: string): string {
+    const d = new Date(dateStr);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  function todayLocalStr(offset: number = 0): string {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
   // Activity last 7 days
   const now = new Date();
   const weekActivity = Array.from({ length: 7 }).map((_, i) => {
+    const dayStr = todayLocalStr(i - 6);
     const date = new Date(now);
     date.setDate(date.getDate() - (6 - i));
-    const dayStr = date.toISOString().slice(0, 10);
-    const count = activeNotes.filter((n) => n.updatedAt.slice(0, 10) === dayStr).length;
+    const count = activeNotes.filter((n) =>
+      toLocalDateStr(n.updatedAt) === dayStr || toLocalDateStr(n.createdAt) === dayStr
+    ).length;
     return {
       day: date.toLocaleDateString('pl-PL', { weekday: 'short' }),
       count,
@@ -33,15 +46,15 @@ function Stats({ notes, onClose }: Props) {
 
   // Streak
   let streak = 0;
-  const checkDate = new Date(now);
+  let dayOffset = 0;
   while (true) {
-    const dayStr = checkDate.toISOString().slice(0, 10);
+    const dayStr = todayLocalStr(-dayOffset);
     const hasActivity = activeNotes.some(
-      (n) => n.updatedAt.slice(0, 10) === dayStr || n.createdAt.slice(0, 10) === dayStr
+      (n) => toLocalDateStr(n.updatedAt) === dayStr || toLocalDateStr(n.createdAt) === dayStr
     );
     if (hasActivity) {
       streak++;
-      checkDate.setDate(checkDate.getDate() - 1);
+      dayOffset++;
     } else {
       break;
     }
@@ -79,7 +92,7 @@ function Stats({ notes, onClose }: Props) {
                 <div
                   className="activity-bar"
                   style={{ height: `${(d.count / maxActivity) * 100}%` }}
-                  title={`${d.count} notatek`}
+                  title={`${d.count} ${d.count === 1 ? 'notatka' : (d.count % 100 >= 12 && d.count % 100 <= 14) ? 'notatek' : (d.count % 10 >= 2 && d.count % 10 <= 4) ? 'notatki' : 'notatek'}`}
                 />
                 <span className="activity-day">{d.day}</span>
               </div>

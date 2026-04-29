@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Note } from './types';
 import NotesList from './components/NotesList';
 import NoteEditor from './components/NoteEditor';
@@ -8,6 +8,7 @@ import Onboarding from './components/Onboarding';
 import CommandPalette from './components/CommandPalette';
 import Settings from './components/Settings';
 import Stats from './components/Stats';
+import PomodoroTimer from './components/PomodoroTimer';
 
 function App() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -22,6 +23,84 @@ function App() {
   const [showStats, setShowStats] = useState(false);
   const [fontSize, setFontSize] = useState(15);
   const [alwaysOnTop, setAlwaysOnTop] = useState(false);
+  const [showPomodoro, setShowPomodoro] = useState(false);
+  const [showPomodoroMini, setShowPomodoroMini] = useState(false);
+
+  // Pomodoro global state (persists when modal is closed)
+  const [pomodoroRunning, setPomodoroRunning] = useState(false);
+  const [pomodoroMode, setPomodoroMode] = useState<'work' | 'break'>('work');
+  const [pomodoroTimeLeft, setPomodoroTimeLeft] = useState(25 * 60);
+  const [pomodoroSessions, setPomodoroSessions] = useState(0);
+  const [pomodoroWork, setPomodoroWork] = useState(25);
+  const [pomodoroBreak, setPomodoroBreak] = useState(5);
+  const pomodoroIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Update mini pomodoro window when timer ticks
+  useEffect(() => {
+    if (showPomodoroMini) {
+      window.electronAPI.updatePomodoroMini(pomodoroMode, pomodoroTimeLeft, pomodoroRunning, theme);
+    }
+  }, [pomodoroTimeLeft, pomodoroMode, pomodoroRunning, showPomodoroMini, theme]);
+
+  // Listen for actions from mini pomodoro window
+  useEffect(() => {
+    const unsub = window.electronAPI.onPomodoroAction((action: string) => {
+      if (action === 'toggle') {
+        setPomodoroRunning((r) => !r);
+      } else if (action === 'expand') {
+        window.electronAPI.closePomodoroMini();
+        setShowPomodoroMini(false);
+        setShowPomodoro(true);
+      } else if (action === 'close') {
+        setShowPomodoroMini(false);
+      }
+    });
+    return unsub;
+  }, []);
+
+  // Pomodoro background timer
+  useEffect(() => {
+    if (pomodoroRunning) {
+      pomodoroIntervalRef.current = setInterval(() => {
+        setPomodoroTimeLeft((prev) => {
+          if (prev <= 1) {
+            setPomodoroRunning(false);
+            playPomodoroAlarm();
+            if (pomodoroMode === 'work') {
+              setPomodoroSessions((s) => s + 1);
+              setPomodoroMode('break');
+              return pomodoroBreak * 60;
+            } else {
+              setPomodoroMode('work');
+              return pomodoroWork * 60;
+            }
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (pomodoroIntervalRef.current) clearInterval(pomodoroIntervalRef.current);
+    };
+  }, [pomodoroRunning, pomodoroMode, pomodoroWork, pomodoroBreak]);
+
+  function playPomodoroAlarm() {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+      oscillator.frequency.setValueAtTime(600, audioCtx.currentTime + 0.1);
+      oscillator.frequency.setValueAtTime(800, audioCtx.currentTime + 0.2);
+      gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.5);
+    } catch {}
+  }
 
   const params = new URLSearchParams(window.location.search);
   const windowMode = params.get('mode');
@@ -246,9 +325,34 @@ function App() {
     }
   };
 
+  const handleExportZip = (noteIds: string[]) => {
+    window.electronAPI.exportZip(noteIds);
+  };
+
+  const handleCreateChildNote = async (parentId: string) => {
+    const newNoteId = await window.electronAPI.createChildNote(parentId, 'Podnotatka');
+    await loadNotes();
+    window.electronAPI.openNoteWindow(newNoteId);
+  };
+
+  const handleMoveToRoot = async (noteId: string) => {
+    await window.electronAPI.moveNoteToParent(noteId, null);
+    loadNotes();
+  };
+
+  const handleMoveToParent = async (noteId: string, parentId: string) => {
+    await window.electronAPI.moveNoteToParent(noteId, parentId);
+    loadNotes();
+  };
+
   const handleBack = () => {
     if (windowMode === 'editor' || windowMode === 'last') {
-      window.electronAPI.focusMainWindow();
+      // If note has parent, navigate to parent instead of closing
+      if (selectedNote?.parentId) {
+        window.electronAPI.openNoteWindow(selectedNote.parentId);
+      } else {
+        window.electronAPI.focusMainWindow();
+      }
       window.close();
     } else {
       setView('list');
@@ -271,6 +375,9 @@ function App() {
           fontSize={fontSize}
           alwaysOnTop={alwaysOnTop}
           onToggleAlwaysOnTop={handleToggleAlwaysOnTop}
+          allNotes={notes}
+          onNavigateNote={(id) => window.electronAPI.openNoteWindow(id)}
+          onCreateChild={handleCreateChildNote}
         />
       </div>
     );
@@ -296,6 +403,9 @@ function App() {
           onShowStats={() => setShowStats(true)}
           onShowCommandPalette={() => setShowCommandPalette(true)}
           onKanbanStatusChange={handleKanbanStatusChange}
+          onShowPomodoro={() => setShowPomodoro(true)}
+          onExportZip={handleExportZip}
+          pomodoroRunning={pomodoroRunning}
         />
       ) : (
         <NoteEditor
@@ -308,6 +418,9 @@ function App() {
           fontSize={fontSize}
           alwaysOnTop={alwaysOnTop}
           onToggleAlwaysOnTop={handleToggleAlwaysOnTop}
+          allNotes={notes}
+          onNavigateNote={(id) => window.electronAPI.openNoteWindow(id)}
+          onCreateChild={handleCreateChildNote}
         />
       )}
       {showTemplates && (
@@ -341,6 +454,32 @@ function App() {
       )}
       {showStats && (
         <Stats notes={notes} onClose={() => setShowStats(false)} />
+      )}
+      {showPomodoro && (
+        <PomodoroTimer
+          mode={pomodoroMode}
+          timeLeft={pomodoroTimeLeft}
+          isRunning={pomodoroRunning}
+          sessions={pomodoroSessions}
+          workMinutes={pomodoroWork}
+          breakMinutes={pomodoroBreak}
+          onToggleRunning={() => setPomodoroRunning(!pomodoroRunning)}
+          onReset={() => { setPomodoroRunning(false); setPomodoroTimeLeft(pomodoroMode === 'work' ? pomodoroWork * 60 : pomodoroBreak * 60); }}
+          onSkip={() => {
+            setPomodoroRunning(false);
+            if (pomodoroMode === 'work') { setPomodoroSessions((s) => s + 1); setPomodoroMode('break'); setPomodoroTimeLeft(pomodoroBreak * 60); }
+            else { setPomodoroMode('work'); setPomodoroTimeLeft(pomodoroWork * 60); }
+          }}
+          onSetMode={(m) => { setPomodoroMode(m); setPomodoroTimeLeft(m === 'work' ? pomodoroWork * 60 : pomodoroBreak * 60); setPomodoroRunning(false); }}
+          onSetWorkMinutes={(v) => { setPomodoroWork(v); if (pomodoroMode === 'work' && !pomodoroRunning) setPomodoroTimeLeft(v * 60); }}
+          onSetBreakMinutes={(v) => { setPomodoroBreak(v); if (pomodoroMode === 'break' && !pomodoroRunning) setPomodoroTimeLeft(v * 60); }}
+          onClose={() => setShowPomodoro(false)}
+          onMiniMode={() => {
+            setShowPomodoro(false);
+            setShowPomodoroMini(true);
+            window.electronAPI.openPomodoroMini(pomodoroMode, pomodoroTimeLeft, pomodoroRunning);
+          }}
+        />
       )}
     </div>
   );

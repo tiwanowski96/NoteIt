@@ -15,6 +15,9 @@ interface Note {
   deleted?: boolean;
   deletedAt?: string;
   reminder?: string;
+  kanbanStatus?: 'todo' | 'inprogress' | 'done';
+  parentId?: string;
+  childrenOrder?: string[];
 }
 
 interface StoreSchema {
@@ -26,6 +29,26 @@ const store = new Store<StoreSchema>({
     notes: [],
   },
 });
+
+// Migration: ensure all notes have parentId and childrenOrder fields
+function migrateNotes(): void {
+  const notes = store.get('notes');
+  let changed = false;
+  for (const note of notes) {
+    if (note.parentId === undefined) {
+      note.parentId = undefined;
+      changed = true;
+    }
+    if (note.childrenOrder === undefined) {
+      note.childrenOrder = [];
+      changed = true;
+    }
+  }
+  if (changed) {
+    store.set('notes', notes);
+  }
+}
+migrateNotes();
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -252,41 +275,74 @@ function registerShortcuts(): void {
   globalShortcut.register('CommandOrControl+Shift+C', () => {
     takeScreenshot('clipboard');
   });
+
+  // Paste clipboard as new note
+  globalShortcut.register('CommandOrControl+Shift+V', () => {
+    pasteClipboardAsNote();
+  });
+}
+
+function pasteClipboardAsNote(): void {
+  const { clipboard } = require('electron');
+  const text = clipboard.readText();
+  if (!text || !text.trim()) return;
+
+  const crypto = require('crypto');
+  const title = text.trim().slice(0, 50).split('\n')[0];
+  const newNote: Note = {
+    id: crypto.randomUUID(),
+    title: title,
+    content: `<p>${text.replace(/\n/g, '</p><p>')}</p>`,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const notes = store.get('notes');
+  notes.push(newNote);
+  store.set('notes', notes);
+
+  createNoteWindow(newNote.id);
+  broadcastUpdate();
 }
 
 let screenshotMode: 'note' | 'clipboard' = 'note';
+let screenshotWindow: BrowserWindow | null = null;
 
 async function takeScreenshot(mode: 'note' | 'clipboard'): Promise<void> {
   screenshotMode = mode;
-  const { desktopCapturer, screen: electronScreen } = require('electron');
+  const { screen: electronScreen } = require('electron');
 
   const display = electronScreen.getPrimaryDisplay();
-  const { width, height } = display.size;
+  const { width, height } = display.workAreaSize;
   const scaleFactor = display.scaleFactor;
 
-  const sources = await desktopCapturer.getSources({
-    types: ['screen'],
-    thumbnailSize: { width: width * scaleFactor, height: height * scaleFactor },
-  });
+  // Capture screen using PowerShell (reliable on Windows)
+  const tempPath = path.join(app.getPath('temp'), 'noteit-screenshot.png');
+  const { execSync } = require('child_process');
+  const workX = display.workArea.x;
+  const workY = display.workArea.y;
+  const capW = width * scaleFactor;
+  const capH = height * scaleFactor;
 
-  if (!sources.length) return;
+  try {
+    execSync(`powershell -command "Add-Type -AssemblyName System.Drawing; $bmp = New-Object System.Drawing.Bitmap(${capW}, ${capH}); $g = [System.Drawing.Graphics]::FromImage($bmp); $g.CopyFromScreen(${workX * scaleFactor}, ${workY * scaleFactor}, 0, 0, [System.Drawing.Size]::new(${capW}, ${capH})); $bmp.Save('${tempPath.replace(/\\/g, '\\\\')}'); $g.Dispose(); $bmp.Dispose()"`, { timeout: 5000, windowsHide: true });
+  } catch { return; }
 
-  const fullScreenshot = sources[0].thumbnail.toDataURL();
-  const modeLabel = mode === 'clipboard'
-    ? 'Zaznacz obszar \u2192 kopiuj do schowka. ESC aby anulowa\u0107.'
-    : 'Zaznacz obszar \u2192 nowa notatka. ESC aby anulowa\u0107.';
+  const modeLabel = 'Zaznacz obszar. ESC aby anulowac.';
 
-  const screenshotWindow = new BrowserWindow({
+  // Open window covering work area (without taskbar)
+  const screenshotWin = new BrowserWindow({
     width,
     height,
-    x: 0,
-    y: 0,
+    x: display.workArea.x,
+    y: display.workArea.y,
     frame: false,
-    transparent: true,
+    show: false,
     alwaysOnTop: true,
-    fullscreen: true,
     skipTaskbar: true,
     resizable: false,
+    movable: false,
+    focusable: true,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -296,70 +352,103 @@ async function takeScreenshot(mode: 'note' | 'clipboard'): Promise<void> {
   const htmlContent = `<!DOCTYPE html>
 <html><head><style>
 *{margin:0;padding:0}
-body{overflow:hidden;cursor:crosshair;user-select:none}
-#bg{position:fixed;top:0;left:0;width:100%;height:100%}
-canvas{position:fixed;top:0;left:0;z-index:2}
-.info{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:10px 20px;border-radius:10px;font-family:'Segoe UI',sans-serif;font-size:13px;z-index:3;backdrop-filter:blur(4px)}
+html,body{width:100%;height:100%;overflow:hidden}
+body{cursor:crosshair;user-select:none;position:relative}
+#bg{position:absolute;top:0;left:0;width:100%;height:100%;z-index:0}
+canvas{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1}
+.info{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:8px 18px;border-radius:8px;font-family:'Segoe UI',sans-serif;font-size:12px;z-index:3}
 </style></head><body>
-<img id="bg" src="${fullScreenshot}"/>
+<img id="bg"/>
 <canvas id="canvas"></canvas>
 <div class="info">${modeLabel}</div>
 <script>
 const{ipcRenderer}=require('electron');
+const fs=require('fs');
 const canvas=document.getElementById('canvas');
 const ctx=canvas.getContext('2d');
 const bgImg=document.getElementById('bg');
-canvas.width=window.innerWidth;
-canvas.height=window.innerHeight;
+
+const imgBuffer=fs.readFileSync('${tempPath.replace(/\\/g, '\\\\')}');
+const blob=new Blob([imgBuffer],{type:'image/png'});
+bgImg.src=URL.createObjectURL(blob);
+
+bgImg.onload=()=>{
+  canvas.width=bgImg.clientWidth;
+  canvas.height=bgImg.clientHeight;
+  ctx.fillStyle='rgba(0,0,0,0.15)';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+};
+
 let startX=0,startY=0,isDrawing=false;
+
 document.addEventListener('keydown',e=>{if(e.key==='Escape')ipcRenderer.send('screenshot-cancel')});
+
 canvas.addEventListener('mousedown',e=>{startX=e.clientX;startY=e.clientY;isDrawing=true});
+
 canvas.addEventListener('mousemove',e=>{
-if(!isDrawing)return;
-ctx.clearRect(0,0,canvas.width,canvas.height);
-ctx.fillStyle='rgba(0,0,0,0.4)';
-ctx.fillRect(0,0,canvas.width,canvas.height);
-const x=Math.min(startX,e.clientX),y=Math.min(startY,e.clientY);
-const w=Math.abs(e.clientX-startX),h=Math.abs(e.clientY-startY);
-ctx.clearRect(x,y,w,h);
-ctx.strokeStyle='#6366f1';ctx.lineWidth=2;ctx.setLineDash([6,3]);
-ctx.strokeRect(x,y,w,h);ctx.setLineDash([]);
-ctx.fillStyle='rgba(99,102,241,0.9)';ctx.fillRect(x,y-22,80,20);
-ctx.fillStyle='#fff';ctx.font='11px Segoe UI';ctx.fillText(w+' x '+h,x+6,y-8);
+  if(!isDrawing)return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const x=Math.min(startX,e.clientX),y=Math.min(startY,e.clientY);
+  const w=Math.abs(e.clientX-startX),h=Math.abs(e.clientY-startY);
+  // Dark overlay outside selection
+  ctx.fillStyle='rgba(0,0,0,0.4)';
+  ctx.fillRect(0,0,canvas.width,y);
+  ctx.fillRect(0,y+h,canvas.width,canvas.height-y-h);
+  ctx.fillRect(0,y,x,h);
+  ctx.fillRect(x+w,y,canvas.width-x-w,h);
+  // Border
+  ctx.strokeStyle='#6366f1';ctx.lineWidth=2;ctx.setLineDash([5,3]);
+  ctx.strokeRect(x,y,w,h);ctx.setLineDash([]);
+  // Size
+  if(y>24){ctx.fillStyle='rgba(99,102,241,0.85)';ctx.fillRect(x,y-20,72,18);ctx.fillStyle='#fff';ctx.font='11px Segoe UI';ctx.fillText(w+' x '+h,x+5,y-6);}
 });
+
 canvas.addEventListener('mouseup',e=>{
-if(!isDrawing)return;isDrawing=false;
-const x=Math.min(startX,e.clientX),y=Math.min(startY,e.clientY);
-const w=Math.abs(e.clientX-startX),h=Math.abs(e.clientY-startY);
-if(w<10||h<10)return;
-const scaleX=bgImg.naturalWidth/window.innerWidth;
-const scaleY=bgImg.naturalHeight/window.innerHeight;
-const crop=document.createElement('canvas');
-crop.width=w*scaleX;crop.height=h*scaleY;
-const cctx=crop.getContext('2d');
-cctx.drawImage(bgImg,x*scaleX,y*scaleY,w*scaleX,h*scaleY,0,0,crop.width,crop.height);
-ipcRenderer.send('screenshot-taken',crop.toDataURL('image/png'));
+  if(!isDrawing)return;isDrawing=false;
+  const x=Math.min(startX,e.clientX),y=Math.min(startY,e.clientY);
+  const w=Math.abs(e.clientX-startX),h=Math.abs(e.clientY-startY);
+  if(w<10||h<10){ipcRenderer.send('screenshot-cancel');return;}
+  const scaleX=bgImg.naturalWidth/bgImg.clientWidth;
+  const scaleY=bgImg.naturalHeight/bgImg.clientHeight;
+  const crop=document.createElement('canvas');
+  crop.width=Math.round(w*scaleX);crop.height=Math.round(h*scaleY);
+  const cctx=crop.getContext('2d');
+  cctx.drawImage(bgImg,Math.round(x*scaleX),Math.round(y*scaleY),crop.width,crop.height,0,0,crop.width,crop.height);
+  ipcRenderer.send('screenshot-taken',crop.toDataURL('image/png'));
 });
 </script></body></html>`;
 
-  screenshotWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+  screenshotWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+  screenshotWin.once('ready-to-show', () => {
+    screenshotWin.show();
+    screenshotWin.focus();
+    globalShortcut.register('Escape', () => {
+      if (screenshotWindow && !screenshotWindow.isDestroyed()) {
+        screenshotWindow.close();
+        screenshotWindow = null;
+      }
+      try { globalShortcut.unregister('Escape'); } catch {}
+    });
+  });
+  screenshotWin.on('closed', () => {
+    screenshotWindow = null;
+    try { globalShortcut.unregister('Escape'); } catch {}
+  });
+  screenshotWindow = screenshotWin;
 }
 
 ipcMain.on('screenshot-cancel', () => {
-  BrowserWindow.getAllWindows().forEach((win) => {
-    if (win.isAlwaysOnTop() && win.isFullScreen()) {
-      win.close();
-    }
-  });
+  if (screenshotWindow && !screenshotWindow.isDestroyed()) {
+    screenshotWindow.close();
+    screenshotWindow = null;
+  }
 });
 
 ipcMain.on('screenshot-taken', (_event, dataUrl: string) => {
-  // Close screenshot window
-  BrowserWindow.getAllWindows().forEach((win) => {
-    if (win.isAlwaysOnTop() && win.isFullScreen()) {
-      win.close();
-    }
-  });
+  if (screenshotWindow && !screenshotWindow.isDestroyed()) {
+    screenshotWindow.close();
+    screenshotWindow = null;
+  }
 
   if (screenshotMode === 'clipboard') {
     // Copy to clipboard
@@ -509,6 +598,64 @@ ipcMain.handle('focus-main-window', () => {
   createMainWindow();
 });
 
+ipcMain.handle('move-note-to-parent', (_event, noteId: string, newParentId: string | null) => {
+  const notes = store.get('notes');
+  const note = notes.find((n: Note) => n.id === noteId);
+  if (!note) return notes;
+
+  // Remove from old parent's childrenOrder
+  if (note.parentId) {
+    const oldParent = notes.find((n: Note) => n.id === note.parentId);
+    if (oldParent && oldParent.childrenOrder) {
+      oldParent.childrenOrder = oldParent.childrenOrder.filter((id: string) => id !== noteId);
+    }
+  }
+
+  // Set new parent
+  note.parentId = newParentId || undefined;
+
+  // Add to new parent's childrenOrder
+  if (newParentId) {
+    const newParent = notes.find((n: Note) => n.id === newParentId);
+    if (newParent) {
+      if (!newParent.childrenOrder) newParent.childrenOrder = [];
+      if (!newParent.childrenOrder.includes(noteId)) {
+        newParent.childrenOrder.push(noteId);
+      }
+    }
+  }
+
+  store.set('notes', notes);
+  broadcastUpdate(_event.sender.id);
+  return notes;
+});
+
+ipcMain.handle('create-child-note', (_event, parentId: string, title: string) => {
+  const notes = store.get('notes');
+  const parent = notes.find((n: Note) => n.id === parentId);
+  if (!parent) return notes;
+
+  const crypto = require('crypto');
+  const newNote: Note = {
+    id: crypto.randomUUID(),
+    title,
+    content: '',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    parentId,
+    childrenOrder: [],
+  };
+
+  notes.push(newNote);
+
+  if (!parent.childrenOrder) parent.childrenOrder = [];
+  parent.childrenOrder.push(newNote.id);
+
+  store.set('notes', notes);
+  broadcastUpdate(_event.sender.id);
+  return newNote.id;
+});
+
 ipcMain.handle('set-theme', (_event, theme: string) => {
   const allWindows = BrowserWindow.getAllWindows();
   for (const win of allWindows) {
@@ -522,6 +669,127 @@ ipcMain.handle('set-always-on-top', (_event, value: boolean) => {
   const senderWindow = BrowserWindow.fromWebContents(_event.sender);
   if (senderWindow && !senderWindow.isDestroyed()) {
     senderWindow.setAlwaysOnTop(value);
+  }
+});
+
+let pomodoroMiniWindow: BrowserWindow | null = null;
+
+ipcMain.handle('open-pomodoro-mini', (_event, mode: string, timeLeft: number, isRunning: boolean) => {
+  if (pomodoroMiniWindow && !pomodoroMiniWindow.isDestroyed()) {
+    pomodoroMiniWindow.focus();
+    return;
+  }
+
+  pomodoroMiniWindow = new BrowserWindow({
+    width: 190,
+    height: 40,
+    x: Math.round(require('electron').screen.getPrimaryDisplay().workAreaSize.width - 210),
+    y: 20,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    hasShadow: false,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  });
+
+  pomodoroMiniWindow.setVisibleOnAllWorkspaces(true);
+
+  const formatTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+
+  const html = `<!DOCTYPE html>
+<html><head><style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:transparent}
+body{font-family:'Segoe UI',sans-serif;-webkit-app-region:drag;display:flex;align-items:center;justify-content:center}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:20px;border:1px solid rgba(128,128,128,0.2);backdrop-filter:blur(12px)}
+.pill.light{background:rgba(255,255,255,0.92);color:#1a1a2e}
+.pill.dark{background:rgba(30,30,42,0.92);color:#f0f0f5}
+.mode{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff}
+.mode.work{background:#6366f1}
+.mode.break{background:#10b981}
+.time{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;min-width:40px}
+button{-webkit-app-region:no-drag;background:none;border:none;cursor:pointer;padding:3px;border-radius:4px;display:flex;align-items:center}
+.light button{color:rgba(0,0,0,0.5)}
+.dark button{color:rgba(255,255,255,0.6)}
+button:hover{background:rgba(128,128,128,0.15)}
+</style></head><body>
+<div class="pill dark" id="pill">
+  <span class="mode ${mode}" id="mode">${mode === 'work' ? 'P' : 'O'}</span>
+  <span class="time" id="time">${formatTime(timeLeft)}</span>
+  <button id="toggle">
+    ${isRunning ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>' : '<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>'}
+  </button>
+  <button id="expand">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/></svg>
+  </button>
+  <button id="close">
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+</div>
+<script>
+const{ipcRenderer}=require('electron');
+document.getElementById('toggle').addEventListener('click',()=>ipcRenderer.send('pomodoro-mini-action','toggle'));
+document.getElementById('expand').addEventListener('click',()=>ipcRenderer.send('pomodoro-mini-action','expand'));
+document.getElementById('close').addEventListener('click',()=>ipcRenderer.send('pomodoro-mini-action','close'));
+ipcRenderer.on('pomodoro-mini-update',(e,data)=>{
+  document.getElementById('time').textContent=data.time;
+  const modeEl=document.getElementById('mode');
+  modeEl.className='mode '+data.mode;
+  modeEl.textContent=data.mode==='work'?'P':'O';
+  const btn=document.getElementById('toggle');
+  btn.innerHTML=data.isRunning?'<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>':'<svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21"/></svg>';
+  const pill=document.getElementById('pill');
+  pill.className='pill '+(data.theme||'dark');
+});
+</script></body></html>`;
+
+  pomodoroMiniWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+
+  pomodoroMiniWindow.on('closed', () => {
+    pomodoroMiniWindow = null;
+  });
+});
+
+ipcMain.handle('close-pomodoro-mini', () => {
+  if (pomodoroMiniWindow && !pomodoroMiniWindow.isDestroyed()) {
+    pomodoroMiniWindow.close();
+    pomodoroMiniWindow = null;
+  }
+});
+
+ipcMain.handle('update-pomodoro-mini', (_event, mode: string, timeLeft: number, isRunning: boolean, theme: string) => {
+  if (pomodoroMiniWindow && !pomodoroMiniWindow.isDestroyed()) {
+    const formatTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+    pomodoroMiniWindow.webContents.send('pomodoro-mini-update', {
+      mode,
+      time: formatTime(timeLeft),
+      isRunning,
+      theme: theme || 'dark',
+    });
+  }
+});
+
+ipcMain.on('pomodoro-mini-action', (_event, action: string) => {
+  // Forward action to main renderer window
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('pomodoro-action', action);
+  }
+  // Also send to all note windows
+  for (const [, win] of noteWindows) {
+    if (!win.isDestroyed()) {
+      win.webContents.send('pomodoro-action', action);
+    }
+  }
+  if (action === 'close') {
+    if (pomodoroMiniWindow && !pomodoroMiniWindow.isDestroyed()) {
+      pomodoroMiniWindow.close();
+      pomodoroMiniWindow = null;
+    }
   }
 });
 
@@ -597,6 +865,93 @@ ipcMain.handle('export-note', async (_event, noteId: string, format: string) => 
     fs.writeFileSync(result.filePath, content, 'utf-8');
   }
 });
+
+ipcMain.handle('export-zip', async (_event, noteIds: string[]) => {
+  const notes = store.get('notes');
+  const selectedNotes = notes.filter((n: Note) => noteIds.includes(n.id));
+  if (selectedNotes.length === 0) return;
+
+  const result = await dialog.showSaveDialog({
+    defaultPath: `noteit-export-${new Date().toISOString().slice(0, 10)}.zip`,
+    filters: [{ name: 'ZIP', extensions: ['zip'] }],
+  });
+
+  if (result.canceled || !result.filePath) return;
+
+  // Simple ZIP creation using Node.js zlib
+  const archiver = await createSimpleZip(selectedNotes);
+  fs.writeFileSync(result.filePath, archiver);
+});
+
+function createSimpleZip(notes: Note[]): Buffer {
+  // Use a simple approach: create individual .md files and pack them
+  // Since we don't have archiver package, we'll use a basic ZIP structure
+  const files: { name: string; content: Buffer }[] = notes.map((note) => ({
+    name: `${note.title.replace(/[<>:"/\\|?*]/g, '_')}.md`,
+    content: Buffer.from(`# ${note.title}\n\n${stripHtml(note.content)}`, 'utf-8'),
+  }));
+
+  // Minimal ZIP file format
+  const localHeaders: Buffer[] = [];
+  const centralHeaders: Buffer[] = [];
+  let offset = 0;
+
+  for (const file of files) {
+    const nameBuffer = Buffer.from(file.name, 'utf-8');
+    const localHeader = Buffer.alloc(30 + nameBuffer.length);
+    localHeader.writeUInt32LE(0x04034b50, 0); // Local file header signature
+    localHeader.writeUInt16LE(20, 4); // Version needed
+    localHeader.writeUInt16LE(0, 6); // Flags
+    localHeader.writeUInt16LE(0, 8); // Compression (none)
+    localHeader.writeUInt16LE(0, 10); // Mod time
+    localHeader.writeUInt16LE(0, 12); // Mod date
+    localHeader.writeUInt32LE(0, 14); // CRC-32 (skip for simplicity)
+    localHeader.writeUInt32LE(file.content.length, 18); // Compressed size
+    localHeader.writeUInt32LE(file.content.length, 22); // Uncompressed size
+    localHeader.writeUInt16LE(nameBuffer.length, 26); // File name length
+    localHeader.writeUInt16LE(0, 28); // Extra field length
+    nameBuffer.copy(localHeader, 30);
+
+    localHeaders.push(Buffer.concat([localHeader, file.content]));
+
+    // Central directory header
+    const centralHeader = Buffer.alloc(46 + nameBuffer.length);
+    centralHeader.writeUInt32LE(0x02014b50, 0); // Central directory signature
+    centralHeader.writeUInt16LE(20, 4); // Version made by
+    centralHeader.writeUInt16LE(20, 6); // Version needed
+    centralHeader.writeUInt16LE(0, 8); // Flags
+    centralHeader.writeUInt16LE(0, 10); // Compression
+    centralHeader.writeUInt16LE(0, 12); // Mod time
+    centralHeader.writeUInt16LE(0, 14); // Mod date
+    centralHeader.writeUInt32LE(0, 16); // CRC-32
+    centralHeader.writeUInt32LE(file.content.length, 20); // Compressed size
+    centralHeader.writeUInt32LE(file.content.length, 24); // Uncompressed size
+    centralHeader.writeUInt16LE(nameBuffer.length, 28); // File name length
+    centralHeader.writeUInt16LE(0, 30); // Extra field length
+    centralHeader.writeUInt16LE(0, 32); // Comment length
+    centralHeader.writeUInt16LE(0, 34); // Disk number start
+    centralHeader.writeUInt16LE(0, 36); // Internal attributes
+    centralHeader.writeUInt32LE(0, 38); // External attributes
+    centralHeader.writeUInt32LE(offset, 42); // Relative offset
+    nameBuffer.copy(centralHeader, 46);
+
+    centralHeaders.push(centralHeader);
+    offset += localHeader.length + file.content.length;
+  }
+
+  const centralDirBuffer = Buffer.concat(centralHeaders);
+  const endRecord = Buffer.alloc(22);
+  endRecord.writeUInt32LE(0x06054b50, 0); // End of central directory signature
+  endRecord.writeUInt16LE(0, 4); // Disk number
+  endRecord.writeUInt16LE(0, 6); // Central dir disk
+  endRecord.writeUInt16LE(files.length, 8); // Entries on disk
+  endRecord.writeUInt16LE(files.length, 10); // Total entries
+  endRecord.writeUInt32LE(centralDirBuffer.length, 12); // Central dir size
+  endRecord.writeUInt32LE(offset, 16); // Central dir offset
+  endRecord.writeUInt16LE(0, 20); // Comment length
+
+  return Buffer.concat([...localHeaders, centralDirBuffer, endRecord]);
+}
 
 // Clean up notes deleted more than 30 days ago
 function cleanupTrash(): void {

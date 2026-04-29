@@ -19,6 +19,9 @@ interface Props {
   onShowStats: () => void;
   onShowCommandPalette: () => void;
   onKanbanStatusChange: (noteId: string, status: 'todo' | 'inprogress' | 'done') => void;
+  onShowPomodoro: () => void;
+  onExportZip: (noteIds: string[]) => void;
+  pomodoroRunning: boolean;
 }
 
 const colorMap = [
@@ -37,7 +40,7 @@ function getCardColor(colorKey: string | undefined, currentTheme: 'light' | 'dar
   return currentTheme === 'dark' ? found.dark : found.light;
 }
 
-function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPermanentDelete, onExport, theme, onToggleTheme, onShowShortcuts, onShowSettings, onShowStats, onShowCommandPalette, onKanbanStatusChange }: Props) {
+function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPermanentDelete, onExport, theme, onToggleTheme, onShowShortcuts, onShowSettings, onShowStats, onShowCommandPalette, onKanbanStatusChange, onShowPomodoro, onExportZip, pomodoroRunning }: Props) {
   const [search, setSearch] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('updatedAt');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -47,8 +50,9 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmBulk, setConfirmBulk] = useState<'delete' | 'restore' | null>(null);
   const [selectionMode, setSelectionMode] = useState(false);
+  const [showHamburger, setShowHamburger] = useState(false);
 
-  const activeNotes = notes.filter((n) => !n.deleted);
+  const activeNotes = notes.filter((n) => !n.deleted && !n.parentId);
   const trashedNotes = notes.filter((n) => n.deleted);
 
   // Upcoming reminders (sorted by date, only future ones)
@@ -183,6 +187,16 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
             </svg>
           </button>
           <button
+            className={`btn-icon ${pomodoroRunning ? 'pomodoro-active' : ''}`}
+            onClick={onShowPomodoro}
+            title="Pomodoro timer"
+            aria-label="Pomodoro timer"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </button>
+          <button
             className="btn-icon"
             onClick={onShowCommandPalette}
             title="Szukaj notatki (Ctrl+P)"
@@ -244,6 +258,46 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
           >
             {theme === 'light' ? <MoonIcon /> : <SunIcon />}
           </button>
+          <div className="hamburger-wrapper" style={{ position: 'relative' }}>
+            <button className="hamburger-btn" onClick={() => setShowHamburger(!showHamburger)} aria-label="Menu">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
+            {showHamburger && (
+              <div className="hamburger-menu" onMouseLeave={() => setShowHamburger(false)}>
+                <button className="hamburger-menu-item" onClick={() => { onShowCommandPalette(); setShowHamburger(false); }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                  Szukaj notatki
+                </button>
+                <button className={`hamburger-menu-item ${pomodoroRunning ? 'pomodoro-active' : ''}`} onClick={() => { onShowPomodoro(); setShowHamburger(false); }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  Pomodoro {pomodoroRunning ? '●' : ''}
+                </button>
+                <button className="hamburger-menu-item" onClick={() => { onShowStats(); setShowHamburger(false); }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                  Statystyki
+                </button>
+                <button className="hamburger-menu-item" onClick={() => { onShowShortcuts(); setShowHamburger(false); }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                  Skróty
+                </button>
+                <button className="hamburger-menu-item" onClick={() => { onShowSettings(); setShowHamburger(false); }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 0-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                  Ustawienia
+                </button>
+                <div className="hamburger-menu-separator" />
+                <button className="hamburger-menu-item" onClick={() => { window.electronAPI.importFiles(); setShowHamburger(false); }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Importuj pliki
+                </button>
+                <button className="hamburger-menu-item" onClick={() => { onToggleTheme(); setShowHamburger(false); }}>
+                  {theme === 'light' ? <MoonIcon size={14} /> : <SunIcon size={14} />}
+                  {theme === 'light' ? 'Ciemny motyw' : 'Jasny motyw'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -261,29 +315,31 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
           />
         </div>
         <div className="controls-right">
-          {allTags.length > 0 && !showTrash && (
+          <div className="controls-filters">
+            {allTags.length > 0 && !showTrash && (
+              <select
+                className="control-select"
+                value={filterTag}
+                onChange={(e) => setFilterTag(e.target.value)}
+                aria-label="Filtruj po tagu"
+              >
+                <option value="">Wszystkie tagi</option>
+                {allTags.map((tag) => (
+                  <option key={tag} value={tag}>{tag}</option>
+                ))}
+              </select>
+            )}
             <select
               className="control-select"
-              value={filterTag}
-              onChange={(e) => setFilterTag(e.target.value)}
-              aria-label="Filtruj po tagu"
+              value={sortMode}
+              onChange={(e) => setSortMode(e.target.value as SortMode)}
+              aria-label="Sortowanie"
             >
-              <option value="">Wszystkie tagi</option>
-              {allTags.map((tag) => (
-                <option key={tag} value={tag}>{tag}</option>
-              ))}
+              <option value="updatedAt">Ostatnio edytowane</option>
+              <option value="createdAt">Data utworzenia</option>
+              <option value="title">Nazwa</option>
             </select>
-          )}
-          <select
-            className="control-select"
-            value={sortMode}
-            onChange={(e) => setSortMode(e.target.value as SortMode)}
-            aria-label="Sortowanie"
-          >
-            <option value="updatedAt">Ostatnio edytowane</option>
-            <option value="createdAt">Data utworzenia</option>
-            <option value="title">Nazwa</option>
-          </select>
+          </div>
           <div className="view-toggle">
             <button
               className={`view-btn ${viewMode === 'grid' ? 'active' : ''}`}
@@ -391,6 +447,9 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
           </div>
           {selectionMode && selectedIds.size > 0 && (
             <div className="trash-toolbar-right">
+              <button className="btn btn-secondary btn-sm" onClick={() => onExportZip(Array.from(selectedIds))}>
+                Eksportuj .zip
+              </button>
               <button className="btn btn-danger btn-sm" onClick={() => setConfirmBulk('delete')}>
                 Usuń zaznaczone
               </button>
