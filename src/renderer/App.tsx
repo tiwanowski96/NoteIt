@@ -10,6 +10,7 @@ import Settings from './components/Settings';
 import Stats from './components/Stats';
 import PomodoroTimer from './components/PomodoroTimer';
 import WindowControls from './components/WindowControls';
+import { UnlockModal } from './components/LockNote';
 
 function App() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -26,6 +27,8 @@ function App() {
   const [alwaysOnTop, setAlwaysOnTop] = useState(false);
   const [showPomodoro, setShowPomodoro] = useState(false);
   const [showPomodoroMini, setShowPomodoroMini] = useState(false);
+  const [showUnlock, setShowUnlock] = useState<Note | null>(null);
+  const [unlockError, setUnlockError] = useState(false);
 
   // Pomodoro global state (persists when modal is closed)
   const [pomodoroRunning, setPomodoroRunning] = useState(false);
@@ -272,7 +275,12 @@ function App() {
   };
 
   const handleSelectNote = (note: Note) => {
-    window.electronAPI.openNoteWindow(note.id);
+    if (note.locked) {
+      setShowUnlock(note);
+      setUnlockError(false);
+    } else {
+      window.electronAPI.openNoteWindow(note.id);
+    }
   };
 
   const handleSaveNote = async (note: Note) => {
@@ -411,6 +419,7 @@ function App() {
           onShowPomodoro={() => setShowPomodoro(true)}
           onExportZip={handleExportZip}
           pomodoroRunning={pomodoroRunning}
+          onShowOnboarding={() => setShowOnboarding(true)}
         />
       ) : (
         <NoteEditor
@@ -459,6 +468,22 @@ function App() {
       )}
       {showStats && (
         <Stats notes={notes} onClose={() => setShowStats(false)} />
+      )}
+      {showUnlock && (
+        <UnlockModal
+          error={unlockError}
+          onUnlock={async (pin) => {
+            const ok = await window.electronAPI.unlockNote(showUnlock.id, pin);
+            if (ok) {
+              setShowUnlock(null);
+              setUnlockError(false);
+              window.electronAPI.openNoteWindow(showUnlock.id);
+            } else {
+              setUnlockError(true);
+            }
+          }}
+          onClose={() => { setShowUnlock(null); setUnlockError(false); }}
+        />
       )}
       {showPomodoro && (
         <PomodoroTimer

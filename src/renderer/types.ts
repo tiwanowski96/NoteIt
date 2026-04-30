@@ -13,6 +13,8 @@ export interface Note {
   kanbanStatus?: 'todo' | 'inprogress' | 'done';
   parentId?: string;
   childrenOrder?: string[];
+  locked?: boolean;
+  lockHash?: string;
 }
 
 export type SortMode = 'updatedAt' | 'createdAt' | 'title';
@@ -27,8 +29,12 @@ export interface ElectronAPI {
   restoreNote: (noteId: string) => Promise<Note[]>;
   saveImage: (dataUrl: string) => Promise<string>;
   openNoteWindow: (noteId: string) => Promise<void>;
+  openStickyNote: (noteId: string) => Promise<void>;
   setTheme: (theme: string) => Promise<void>;
   setPomodoroRunning: (running: boolean) => Promise<void>;
+  lockNote: (noteId: string, pin: string) => Promise<boolean>;
+  unlockNote: (noteId: string, pin: string) => Promise<boolean>;
+  removeLock: (noteId: string) => Promise<void>;
   setAlwaysOnTop: (value: boolean) => Promise<void>;
   openPomodoroMini: (mode: string, timeLeft: number, isRunning: boolean) => Promise<void>;
   closePomodoroMini: () => Promise<void>;

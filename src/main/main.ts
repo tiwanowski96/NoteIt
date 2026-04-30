@@ -18,6 +18,8 @@ interface Note {
   kanbanStatus?: 'todo' | 'inprogress' | 'done';
   parentId?: string;
   childrenOrder?: string[];
+  locked?: boolean;
+  lockHash?: string;
 }
 
 interface StoreSchema {
@@ -610,6 +612,80 @@ ipcMain.handle('open-note-window', (_event, noteId: string) => {
   createNoteWindow(noteId);
 });
 
+ipcMain.handle('open-sticky-note', (_event, noteId: string) => {
+  const notes = store.get('notes');
+  const note = notes.find((n: Note) => n.id === noteId);
+  if (!note) return;
+
+  const stickyWin = new BrowserWindow({
+    width: 300,
+    height: 240,
+    frame: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: true,
+    minimizable: false,
+    maximizable: false,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  });
+
+  // Write note data to temp file to avoid escaping issues
+  const tempDataPath = path.join(app.getPath('temp'), 'noteit-sticky-data.json');
+  fs.writeFileSync(tempDataPath, JSON.stringify({ title: note.title, content: note.content }), 'utf-8');
+
+  const html = `<!DOCTYPE html>
+<html><head><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter','Segoe UI',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden;border-radius:8px}
+:root{--bg:#fffbeb;--bg-header:#fef3c7;--text:#292524;--text-sec:#57534e;--border:#f5e6b8}
+@media(prefers-color-scheme:dark){:root{--bg:#292524;--bg-header:#44403c;--text:#fafaf9;--text-sec:#d6d3d1;--border:#57534e}}
+body{background:var(--bg);color:var(--text)}
+.header{display:flex;align-items:center;padding:8px 12px;background:var(--bg-header);border-bottom:1px solid var(--border);-webkit-app-region:drag;cursor:grab;gap:8px;flex-shrink:0}
+.title{font-size:12px;font-weight:600;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-0.01em}
+.header-btn{-webkit-app-region:no-drag;background:none;border:none;cursor:pointer;color:var(--text-sec);width:20px;height:20px;display:flex;align-items:center;justify-content:center;border-radius:4px;transition:background 0.15s}
+.header-btn:hover{background:rgba(0,0,0,0.08)}
+.close-btn:hover{background:#e81123;color:#fff}
+.content{flex:1;padding:12px 14px;font-size:13px;line-height:1.7;color:var(--text-sec);overflow-y:auto;letter-spacing:-0.01em}
+.content p{margin-bottom:0.4em}
+.content h1,.content h2,.content h3{color:var(--text);margin-bottom:0.3em}
+.content h1{font-size:1.2em}
+.content h2{font-size:1.1em}
+.content h3{font-size:1em}
+.content ul,.content ol{padding-left:1.2em;margin-bottom:0.4em}
+.content li{margin-bottom:0.2em}
+.content blockquote{border-left:3px solid var(--border);padding-left:8px;color:var(--text-sec);font-style:italic;margin-bottom:0.4em}
+.content code{background:rgba(0,0,0,0.06);padding:1px 4px;border-radius:3px;font-size:0.9em;font-family:'Cascadia Code',monospace}
+.content table{width:100%;border-collapse:collapse;margin:0.4em 0;font-size:0.85em}
+.content th,.content td{border:1px solid var(--border);padding:4px 6px;text-align:left}
+.content th{background:var(--bg-header);font-weight:600;font-size:0.8em}
+.content img{max-width:100%;border-radius:4px;margin:4px 0}
+.content hr{border:none;border-top:1px solid var(--border);margin:0.5em 0}
+.content a{color:#6366f1;text-decoration:none}
+.content mark{border-radius:2px;padding:0 2px}
+ul[data-type="taskList"]{list-style:none;padding-left:0}
+ul[data-type="taskList"] li{display:flex;align-items:baseline;gap:6px}
+</style></head><body>
+<div class="header">
+  <span class="title" id="title"></span>
+  <button class="header-btn close-btn" onclick="window.close()" title="Zamknij">
+    <svg width="10" height="10" viewBox="0 0 12 12"><line x1="1" y1="1" x2="11" y2="11" stroke="currentColor" stroke-width="1.5"/><line x1="11" y1="1" x2="1" y2="11" stroke="currentColor" stroke-width="1.5"/></svg>
+  </button>
+</div>
+<div class="content" id="content"></div>
+<script>
+const fs=require('fs');
+const data=JSON.parse(fs.readFileSync('${tempDataPath.replace(/\\/g, '\\\\')}','utf-8'));
+document.getElementById('title').textContent=data.title;
+document.getElementById('content').innerHTML=data.content;
+</script>
+</body></html>`;
+
+  stickyWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+});
+
 ipcMain.handle('focus-main-window', () => {
   createMainWindow();
 });
@@ -683,6 +759,38 @@ ipcMain.handle('set-theme', (_event, theme: string) => {
 
 ipcMain.handle('set-pomodoro-running', (_event, running: boolean) => {
   pomodoroIsRunning = running;
+});
+
+ipcMain.handle('lock-note', (_event, noteId: string, pin: string) => {
+  const notes = store.get('notes');
+  const note = notes.find((n: Note) => n.id === noteId);
+  if (!note) return false;
+  // Simple hash (not cryptographically secure, but good enough for local PIN)
+  const crypto = require('crypto');
+  note.lockHash = crypto.createHash('sha256').update(pin).digest('hex');
+  note.locked = true;
+  store.set('notes', notes);
+  broadcastUpdate(_event.sender.id);
+  return true;
+});
+
+ipcMain.handle('unlock-note', (_event, noteId: string, pin: string) => {
+  const notes = store.get('notes');
+  const note = notes.find((n: Note) => n.id === noteId);
+  if (!note || !note.lockHash) return false;
+  const crypto = require('crypto');
+  const hash = crypto.createHash('sha256').update(pin).digest('hex');
+  return hash === note.lockHash;
+});
+
+ipcMain.handle('remove-lock', (_event, noteId: string) => {
+  const notes = store.get('notes');
+  const note = notes.find((n: Note) => n.id === noteId);
+  if (!note) return;
+  note.locked = false;
+  note.lockHash = undefined;
+  store.set('notes', notes);
+  broadcastUpdate(_event.sender.id);
 });
 
 ipcMain.handle('set-always-on-top', (_event, value: boolean) => {

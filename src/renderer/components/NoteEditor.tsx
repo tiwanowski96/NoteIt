@@ -22,6 +22,7 @@ import TableOfContents from './TableOfContents';
 import Breadcrumbs from './Breadcrumbs';
 import NoteChildren from './NoteChildren';
 import SlashCommands from './SlashCommands';
+import { LockModal, RemoveLockModal } from './LockNote';
 
 interface Props {
   note: Note;
@@ -70,6 +71,7 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
   const [tags, setTags] = useState<string[]>(note.tags || []);
   const [color, setColor] = useState(note.color || '');
   const [reminder, setReminder] = useState(note.reminder || '');
+  const [isLocked, setIsLocked] = useState(!!note.locked);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | ''>('');
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
@@ -82,6 +84,9 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
   const [slashCommand, setSlashCommand] = useState<{ top: number; left: number } | null>(null);
+  const [showLockModal, setShowLockModal] = useState(false);
+  const [showRemoveLockModal, setShowRemoveLockModal] = useState(false);
+  const [removeLockError, setRemoveLockError] = useState(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const editor = useEditor({
@@ -108,6 +113,8 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
       TableHeader,
       Link.configure({
         openOnClick: true,
+        autolink: true,
+        linkOnPaste: true,
         HTMLAttributes: {
           class: 'note-link',
         },
@@ -209,9 +216,30 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
     const handlePaste = (event: ClipboardEvent) => {
       const items = event.clipboardData?.items;
       if (!items) return;
+
+      // Check for tab-separated data (Excel/Sheets paste)
+      const text = event.clipboardData?.getData('text/plain') || '';
+      if (text.includes('\t') && text.includes('\n')) {
+        const rows = text.trim().split('\n').map((row) => row.split('\t'));
+        if (rows.length >= 2 && rows[0].length >= 2) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          // Build table HTML
+          const headerRow = rows[0].map((cell) => `<th>${cell}</th>`).join('');
+          const bodyRows = rows.slice(1).map((row) =>
+            `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`
+          ).join('');
+          const tableHtml = `<table><thead><tr>${headerRow}</tr></thead><tbody>${bodyRows}</tbody></table>`;
+          editor.chain().focus().insertContent(tableHtml).run();
+          return;
+        }
+      }
+
+      // Check for images
       for (const item of Array.from(items)) {
         if (item.type.startsWith('image/')) {
           event.preventDefault();
+          event.stopImmediatePropagation();
           insertImageFile(item.getAsFile()!);
           return;
         }
@@ -231,10 +259,10 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
     };
 
     const editorElement = editor.view.dom;
-    editorElement.addEventListener('paste', handlePaste);
+    editorElement.addEventListener('paste', handlePaste, true);
     editorElement.addEventListener('drop', handleDrop);
     return () => {
-      editorElement.removeEventListener('paste', handlePaste);
+      editorElement.removeEventListener('paste', handlePaste, true);
       editorElement.removeEventListener('drop', handleDrop);
     };
   }, [editor]);
@@ -459,17 +487,49 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
             onChange={(iso) => handleReminderChange(iso)}
             onClear={() => handleReminderChange('')}
           />
-          <button className="btn-icon btn-delete" onClick={() => setConfirmDelete(true)} title="Usuń notatkę" aria-label="Usuń notatkę">
+          <button className="btn-icon btn-delete" onClick={() => setConfirmDelete(true)} title="Usun notatke" aria-label="Usun notatke">
             <TrashIcon size={16} />
+          </button>
+          <button
+            className={`btn-icon ${isLocked ? 'reminder-active' : ''}`}
+            onClick={() => {
+              if (isLocked) {
+                setShowRemoveLockModal(true);
+              } else {
+                setShowLockModal(true);
+              }
+            }}
+            title={isLocked ? 'Usun szyfrowanie' : 'Zaszyfruj notatke'}
+            aria-label="Szyfrowanie"
+          >
+            {isLocked ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 5-5 5 5 0 0 1 5 5"/>
+              </svg>
+            )}
           </button>
           <button
             className={`btn-icon ${alwaysOnTop ? 'reminder-active' : ''}`}
             onClick={onToggleAlwaysOnTop}
-            title={alwaysOnTop ? 'Wyłącz zawsze na wierzchu' : 'Zawsze na wierzchu'}
+            title={alwaysOnTop ? 'Wylacz zawsze na wierzchu' : 'Zawsze na wierzchu'}
             aria-label="Zawsze na wierzchu"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill={alwaysOnTop ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2C9.243 2 7 4.243 7 7c0 2.475 1.639 4.57 3.89 5.271L12 22l1.11-9.729C15.361 11.57 17 9.475 17 7c0-2.757-2.243-5-5-5z"/>
+            </svg>
+          </button>
+          <button
+            className="btn-icon"
+            onClick={() => window.electronAPI.openStickyNote(note.id)}
+            title="Przypnij na pulpicie"
+            aria-label="Sticky note"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z"/><path d="M14 3v4a2 2 0 0 0 2 2h4"/>
             </svg>
           </button>
           <button
@@ -647,6 +707,37 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
             </div>
           </div>
         </div>
+      )}
+
+      {/* Lock modal */}
+      {showLockModal && (
+        <LockModal
+          onLock={async (pin) => {
+            await window.electronAPI.lockNote(note.id, pin);
+            setIsLocked(true);
+            setShowLockModal(false);
+          }}
+          onClose={() => setShowLockModal(false)}
+        />
+      )}
+
+      {/* Remove lock modal */}
+      {showRemoveLockModal && (
+        <RemoveLockModal
+          error={removeLockError}
+          onRemove={async (pin) => {
+            const ok = await window.electronAPI.unlockNote(note.id, pin);
+            if (ok) {
+              await window.electronAPI.removeLock(note.id);
+              setIsLocked(false);
+              setShowRemoveLockModal(false);
+              setRemoveLockError(false);
+            } else {
+              setRemoveLockError(true);
+            }
+          }}
+          onClose={() => { setShowRemoveLockModal(false); setRemoveLockError(false); }}
+        />
       )}
 
       {/* Note link modal */}

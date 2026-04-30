@@ -7,7 +7,7 @@ interface Props {
 const slides = [
   {
     title: 'Witaj w NoteIt',
-    description: 'Twoje notatki, zawsze pod ręką. Szybkie, piękne i lokalne.',
+    description: 'Twoje notatki, zawsze pod reka. Szybkie, piekne i lokalne. Aplikacja dziala w tle jako ikona przy zegarku.',
     icon: (
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -18,8 +18,8 @@ const slides = [
     ),
   },
   {
-    title: 'Skróty klawiszowe',
-    description: 'Ctrl+Q otwiera notatki z dowolnego miejsca. Ctrl+Shift+Q otwiera ostatnią. Ctrl+Shift+S robi screenshot.',
+    title: 'Skroty globalne',
+    description: 'Ctrl+Q otwiera notatki. Ctrl+Shift+Q ostatnia notatka. Ctrl+Shift+S screenshot. Ctrl+Shift+V schowek jako notatka. Dzialaja z kazdej aplikacji.',
     icon: (
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="4" width="20" height="16" rx="2" />
@@ -34,13 +34,21 @@ const slides = [
     ),
   },
   {
-    title: 'Wklej screenshoty',
-    description: 'Ctrl+V wkleja obraz ze schowka. Możesz też przeciągnąć plik. Formatuj tekst, dodawaj tagi, kolory i checklisty.',
+    title: 'Edytor',
+    description: 'Wklej screenshoty (Ctrl+V), przeciagnij obrazy, formatuj tekst. Wpisz / aby szybko wstawic tabele, checklisty, naglowki. Ctrl+F szukaj i zamieniaj.',
     icon: (
       <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" />
-        <circle cx="8.5" cy="8.5" r="1.5" />
-        <polyline points="21 15 16 10 5 21" />
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+      </svg>
+    ),
+  },
+  {
+    title: 'Funkcje',
+    description: 'Przypomnienia, Pomodoro timer, szablony, tagi, kanban, szyfrowanie notatek PIN-em, sticky notes na pulpicie, eksport .md/.zip, podnotatki.',
+    icon: (
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
       </svg>
     ),
   },
@@ -78,7 +86,7 @@ function Onboarding({ onComplete }: Props) {
 
         <div className="onboarding-actions">
           <button className="btn btn-secondary" onClick={handleSkip}>
-            Pomiń
+            Pomin
           </button>
           <button className="btn btn-primary" onClick={handleNext}>
             {currentSlide < slides.length - 1 ? 'Dalej' : 'Zaczynamy'}
