@@ -2,6 +2,12 @@
   "name": "noteit",
   "version": "1.0.0",
   "description": "Desktop notes app with system tray, rich text, and screenshot pasting",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tiwanowski96/NoteIt.git"
+  },
+  "author": "The Cloudest - Tomasz Iwanowski",
+  "license": "MIT",
   "main": "dist/main/main.js",
   "scripts": {
     "dev": "concurrently -k \"npm run dev:renderer\" \"npm run dev:main\"",
