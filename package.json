@@ -69,11 +69,20 @@
     },
     "nsis": {
       "oneClick": true,
-      "perMachine": false
+      "perMachine": false,
+      "installerIcon": "assets/noteit.ico",
+      "uninstallerIcon": "assets/noteit.ico",
+      "installerHeaderIcon": "assets/noteit.ico"
     },
     "files": [
       "dist/**/*",
       "assets/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "assets",
+        "to": "assets"
+      }
     ]
   }
 }
