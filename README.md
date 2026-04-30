@@ -95,7 +95,7 @@ The `npm run dev` command starts both the Vite dev server (renderer) and the Ele
 
 ## Documentation
 
-For a complete user guide, see [USER_GUIDE.md](USER_GUIDE.md).
+For a complete user guide, see [USER_GUIDE_EN.md](USER_GUIDE_EN.md) (English) or [USER_GUIDE_PL.md](USER_GUIDE_PL.md) (Polish).
 
 ## License
 

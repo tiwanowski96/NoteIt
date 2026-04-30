@@ -121,7 +121,7 @@ function Settings({ fontSize, onFontSizeChange, lang, onLangChange, autoStart, o
             <button className="settings-link-btn" onClick={() => setShowLicenses(true)}>
               {lang === 'en' ? 'Licenses' : 'Licencje'}
             </button>
-            <button className="settings-link-btn" onClick={() => window.electronAPI.openExternal('https://github.com/tiwanowski96/NoteIt/blob/main/USER_GUIDE.md')}>
+            <button className="settings-link-btn" onClick={() => window.electronAPI.openExternal(lang === 'en' ? 'https://github.com/tiwanowski96/NoteIt/blob/main/USER_GUIDE_EN.md' : 'https://github.com/tiwanowski96/NoteIt/blob/main/USER_GUIDE_PL.md')}>
               {lang === 'en' ? 'User Guide' : 'Poradnik uzytkownika'}
             </button>
           </div>
