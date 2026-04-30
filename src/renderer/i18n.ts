@@ -245,6 +245,8 @@ const translations = {
     edited: 'Edited',
     pomodoroActive: 'Pomodoro is active. Close NoteIt?',
     selectArea: 'Select area. ESC to cancel.',
+    updateAvailable: 'New version available:',
+    checkUpdates: 'Check for updates',
   },
   pl: {
     newNote: 'Nowa notatka',
@@ -471,6 +473,8 @@ const translations = {
     edited: 'Edytowano',
     pomodoroActive: 'Pomodoro jest aktywne. Zamknac NoteIt?',
     selectArea: 'Zaznacz obszar. ESC aby anulowac.',
+    updateAvailable: 'Dostepna nowa wersja:',
+    checkUpdates: 'Sprawdzaj aktualizacje',
   },
 };
 

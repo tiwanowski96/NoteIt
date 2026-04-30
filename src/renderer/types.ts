@@ -58,6 +58,9 @@ export interface ElectronAPI {
   onNotesUpdated: (callback: () => void) => () => void;
   onPasteScreenshot: (callback: (dataUrl: string) => void) => () => void;
   openExternal: (url: string) => Promise<void>;
+  setCheckUpdates: (value: boolean) => Promise<void>;
+  getCheckUpdates: () => Promise<boolean>;
+  onUpdateAvailable: (callback: (data: { version: string; url: string }) => void) => () => void;
 }
 
 declare global {

@@ -21,6 +21,11 @@ function Settings({ fontSize, onFontSizeChange, lang, onLangChange, autoStart, o
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showLicenses, setShowLicenses] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
+  const [checkUpdates, setCheckUpdates] = useState(true);
+
+  React.useEffect(() => {
+    window.electronAPI.getCheckUpdates().then((val) => setCheckUpdates(val));
+  }, []);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -96,6 +101,27 @@ function Settings({ fontSize, onFontSizeChange, lang, onLangChange, autoStart, o
               <span className="toggle-knob" />
             </button>
           </div>
+
+          <div className="settings-row">
+            <div className="settings-row-label">
+              <span>{t('checkUpdates')}</span>
+              <span className="settings-row-hint">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <span className="settings-tooltip">
+                  {lang === 'en' ? 'Check GitHub for new versions on startup. No personal data is sent.' : 'Sprawdzaj dostepnosc nowych wersji na GitHub przy uruchomieniu. Zadne dane osobowe nie sa wysylane.'}
+                </span>
+              </span>
+            </div>
+            <button
+              className={`toggle-switch ${checkUpdates ? 'active' : ''}`}
+              onClick={() => { const newVal = !checkUpdates; setCheckUpdates(newVal); window.electronAPI.setCheckUpdates(newVal); }}
+              aria-label="Check for updates"
+            >
+              <span className="toggle-knob" />
+            </button>
+          </div>
         </div>
 
         <div className="settings-section">
@@ -153,6 +179,8 @@ function Settings({ fontSize, onFontSizeChange, lang, onLangChange, autoStart, o
                   <p>No third-party analytics, tracking, or advertising services are used.</p>
                   <h4>Data storage</h4>
                   <p>All data is stored locally using electron-store in your user profile directory. You have full control over your data and can delete it at any time.</p>
+                  <h4>Update checking</h4>
+                  <p>NoteIt checks GitHub for new versions on startup (can be disabled in Settings). Only the version number is compared – no personal data is sent.</p>
                   <h4>Contact</h4>
                   <p>The Cloudest - Tomasz Iwanowski<br/>noteit@tomasziwanowski.com</p>
                 </>
@@ -167,6 +195,8 @@ function Settings({ fontSize, onFontSizeChange, lang, onLangChange, autoStart, o
                   <p>Nie sa uzywane zadne uslugi analityczne, sledzace ani reklamowe.</p>
                   <h4>Przechowywanie danych</h4>
                   <p>Wszystkie dane sa przechowywane lokalnie za pomoca electron-store w katalogu profilu uzytkownika. Masz pelna kontrole nad swoimi danymi i mozesz je usunac w dowolnym momencie.</p>
+                  <h4>Sprawdzanie aktualizacji</h4>
+                  <p>NoteIt sprawdza dostepnosc nowych wersji na GitHub przy uruchomieniu (mozna wylaczyc w Ustawieniach). Porownywany jest jedynie numer wersji – zadne dane osobowe nie sa wysylane.</p>
                   <h4>Kontakt</h4>
                   <p>The Cloudest - Tomasz Iwanowski<br/>noteit@tomasziwanowski.com</p>
                 </>

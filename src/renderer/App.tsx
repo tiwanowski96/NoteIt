@@ -37,6 +37,7 @@ function App() {
   const [showUnlock, setShowUnlock] = useState<Note | null>(null);
   const [unlockError, setUnlockError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [updateInfo, setUpdateInfo] = useState<{ version: string; url: string } | null>(null);
 
   // Pomodoro global state (persists when modal is closed)
   const [pomodoroRunning, setPomodoroRunning] = useState(false);
@@ -170,6 +171,13 @@ function App() {
     });
     return unsub;
   }, [loadNotes]);
+
+  useEffect(() => {
+    const unsub = window.electronAPI.onUpdateAvailable((data) => {
+      setUpdateInfo(data);
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     loadNotes().then((loaded) => {
@@ -466,6 +474,8 @@ function App() {
           onExportZip={handleExportZip}
           pomodoroRunning={pomodoroRunning}
           onShowOnboarding={() => setShowOnboarding(true)}
+          updateInfo={updateInfo}
+          onDismissUpdate={() => setUpdateInfo(null)}
         />
         )
       ) : (

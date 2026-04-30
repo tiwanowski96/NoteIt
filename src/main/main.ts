@@ -1283,6 +1283,64 @@ function checkReminders(): void {
   }
 }
 
+// Check for updates
+async function checkForUpdates(): Promise<void> {
+  try {
+    const showOnStartVal = store.get('checkUpdates' as any);
+    if (showOnStartVal === false) return;
+
+    const https = require('https');
+    const options = {
+      hostname: 'api.github.com',
+      path: '/repos/tiwanowski96/NoteIt/releases/latest',
+      headers: { 'User-Agent': 'NoteIt' }
+    };
+
+    const data = await new Promise<string>((resolve, reject) => {
+      https.get(options, (res: any) => {
+        let body = '';
+        res.on('data', (chunk: string) => body += chunk);
+        res.on('end', () => resolve(body));
+      }).on('error', reject);
+    });
+
+    const release = JSON.parse(data);
+    const latestVersion = release.tag_name?.replace('v', '') || '';
+    const currentVersion = require('../../package.json').version;
+
+    if (latestVersion && latestVersion !== currentVersion && compareVersions(latestVersion, currentVersion) > 0) {
+      const allWindows = BrowserWindow.getAllWindows();
+      for (const win of allWindows) {
+        if (!win.isDestroyed()) {
+          win.webContents.send('update-available', {
+            version: latestVersion,
+            url: release.html_url,
+          });
+        }
+      }
+    }
+  } catch {}
+}
+
+function compareVersions(a: string, b: string): number {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] || 0) > (pb[i] || 0)) return 1;
+    if ((pa[i] || 0) < (pb[i] || 0)) return -1;
+  }
+  return 0;
+}
+
+ipcMain.handle('set-check-updates', (_event, value: boolean) => {
+  store.set('checkUpdates' as any, value);
+});
+
+ipcMain.handle('get-check-updates', () => {
+  const val = store.get('checkUpdates' as any);
+  return val === undefined ? true : val;
+});
+
 // App lifecycle
 app.on('ready', () => {
   // Show splash screen
@@ -1359,6 +1417,9 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Segoe U
       openAtLogin: true,
       path: app.getPath('exe'),
     });
+
+    // Check for updates
+    checkForUpdates();
   }, 3000);
 });
 

@@ -62,4 +62,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('paste-screenshot', handler);
   },
   openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
+  setCheckUpdates: (value: boolean) => ipcRenderer.invoke('set-check-updates', value),
+  getCheckUpdates: () => ipcRenderer.invoke('get-check-updates'),
+  onUpdateAvailable: (callback: (data: { version: string; url: string }) => void) => {
+    const handler = (_event: any, data: any) => callback(data);
+    ipcRenderer.on('update-available', handler);
+    return () => ipcRenderer.removeListener('update-available', handler);
+  },
 });

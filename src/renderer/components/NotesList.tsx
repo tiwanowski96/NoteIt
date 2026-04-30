@@ -24,6 +24,8 @@ interface Props {
   onExportZip: (noteIds: string[]) => void;
   pomodoroRunning: boolean;
   onShowOnboarding: () => void;
+  updateInfo?: { version: string; url: string } | null;
+  onDismissUpdate?: () => void;
 }
 
 const colorMap = [
@@ -42,8 +44,8 @@ function getCardColor(colorKey: string | undefined, currentTheme: 'light' | 'dar
   return currentTheme === 'dark' ? found.dark : found.light;
 }
 
-function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPermanentDelete, onExport, theme, onToggleTheme, onShowShortcuts, onShowSettings, onShowStats, onShowCommandPalette, onKanbanStatusChange, onShowPomodoro, onExportZip, pomodoroRunning, onShowOnboarding }: Props) {
-  const { t, pluralizeNotes } = useLang();
+function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPermanentDelete, onExport, theme, onToggleTheme, onShowShortcuts, onShowSettings, onShowStats, onShowCommandPalette, onKanbanStatusChange, onShowPomodoro, onExportZip, pomodoroRunning, onShowOnboarding, updateInfo, onDismissUpdate }: Props) {
+  const { t, pluralizeNotes, lang } = useLang();
   const [search, setSearch] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('updatedAt');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -304,6 +306,19 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
           </div>
         </div>
       </div>
+
+      {/* Update banner */}
+      {updateInfo && (
+        <div className="update-banner">
+          <span>{t('updateAvailable')} v{updateInfo.version}</span>
+          <div className="update-banner-actions">
+            <button className="btn btn-primary btn-sm" onClick={() => window.electronAPI.openExternal(updateInfo.url)}>
+              {lang === 'en' ? 'Download' : 'Pobierz'}
+            </button>
+            <button className="btn-icon" onClick={onDismissUpdate} aria-label={t('close')}>×</button>
+          </div>
+        </div>
+      )}
 
       {/* Controls bar */}
       <div className="controls-bar">

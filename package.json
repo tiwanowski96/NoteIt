@@ -72,7 +72,8 @@
       "perMachine": false,
       "installerIcon": "assets/noteit.ico",
       "uninstallerIcon": "assets/noteit.ico",
-      "installerHeaderIcon": "assets/noteit.ico"
+      "installerHeaderIcon": "assets/noteit.ico",
+      "shortcutName": "NoteIt"
     },
     "files": [
       "dist/**/*",
