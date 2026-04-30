@@ -1,3 +1,32 @@
+# NoteIt Notes v1.0.1
+
+## Changes
+
+### Fixed
+- Application icon now displays correctly in Windows Start Menu, taskbar, and system tray
+- Fixed icon embedding in the built executable
+
+### Added
+- Auto-update checker – app checks GitHub for new versions on startup (can be disabled in Settings)
+- Update banner on main page when a new version is available
+- "Check for updates" toggle in Settings
+- Documentation link (User Guide) in Settings
+- Updated Privacy Policy to reflect update checking
+
+### Improved
+- Better icon resolution support (multi-size ICO: 16, 32, 48, 64, 128, 256px)
+- Assets now properly bundled as extra resources for production builds
+
+---
+
+**Download:** `NoteIt Notes Setup 1.0.1.exe`
+
+**Requirements:** Windows 10 or later (x64)
+
+*© 2026 The Cloudest – Tomasz Iwanowski*
+
+---
+
 # NoteIt v1.0.0 – Initial Release
 
 **NoteIt** is a fast, beautiful, and fully local desktop notes app for Windows. All your data stays on your device – no internet, no tracking, no cloud.
