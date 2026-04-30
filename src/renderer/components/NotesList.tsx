@@ -565,8 +565,8 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
                       <button
                         className={`btn-icon btn-pin ${note.pinned ? 'pinned' : ''}`}
                         onClick={(e) => { e.stopPropagation(); onPin(note.id); }}
-                        title={note.pinned ? t('pinned') : t('pinned')}
-                        aria-label={t('pinned')}
+                        title={note.pinned ? t('unpin') : t('pin')}
+                        aria-label={note.pinned ? t('unpin') : t('pin')}
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill={note.pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
                           <path d="M12 2C9.243 2 7 4.243 7 7c0 2.475 1.639 4.57 3.89 5.271L12 22l1.11-9.729C15.361 11.57 17 9.475 17 7c0-2.757-2.243-5-5-5z"/>

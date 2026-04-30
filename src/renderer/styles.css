@@ -133,6 +133,7 @@ body {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-right: 4px;
   padding-bottom: 16px;
   flex: 1;
@@ -150,7 +151,7 @@ body {
   border: 1px solid var(--border-light);
   box-shadow: var(--shadow-card);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   display: flex;
   flex-direction: column;
   min-height: 160px;
@@ -832,6 +833,7 @@ body {
   flex-direction: column;
   gap: 8px;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-right: 4px;
   flex: 1;
 }
@@ -3668,13 +3670,54 @@ body {
   white-space: nowrap;
   box-shadow: var(--shadow-md);
   margin-bottom: 6px;
-  z-index: 100;
+  z-index: 9999;
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.15s, transform 0.15s;
 }
 
 .btn-icon[data-tooltip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+
+/* Tooltips inside note cards - show below to avoid overflow clipping */
+.note-card .btn-icon[data-tooltip]::after {
+  bottom: auto;
+  top: 100%;
+  margin-bottom: 0;
+  margin-top: 6px;
+}
+
+
+/* Theme toggle tooltip */
+.theme-toggle[data-tooltip] {
+  position: relative;
+}
+
+.theme-toggle[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) scale(0.95);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  box-shadow: var(--shadow-md);
+  margin-bottom: 6px;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.theme-toggle[data-tooltip]:hover::after {
   opacity: 1;
   transform: translateX(-50%) scale(1);
 }

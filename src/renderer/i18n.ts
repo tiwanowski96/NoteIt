@@ -178,6 +178,8 @@ const translations = {
     streak: 'Days streak',
     activity7: 'Activity (7 days)',
     pinned: 'Pinned',
+    pin: 'Pin',
+    unpin: 'Unpin',
 
     // Shortcuts
     shortcuts: 'Keyboard shortcuts',
@@ -408,6 +410,8 @@ const translations = {
     streak: 'Dni streak',
     activity7: 'Aktywnosc (7 dni)',
     pinned: 'Przypiete',
+    pin: 'Przypnij',
+    unpin: 'Odepnij',
 
     shortcuts: 'Skroty klawiszowe',
     global: 'Globalne (z dowolnej aplikacji)',
