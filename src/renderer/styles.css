@@ -63,6 +63,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-size: var(--app-font-size, 15px);
+  zoom: var(--app-zoom, 1);
 }
 
 #root {
@@ -565,21 +566,21 @@ body {
 }
 
 .editor-container .tiptap h1 {
-  font-size: 1.7rem;
+  font-size: 1.7em;
   font-weight: 700;
   margin-bottom: 0.5em;
   letter-spacing: -0.02em;
 }
 
 .editor-container .tiptap h2 {
-  font-size: 1.3rem;
+  font-size: 1.3em;
   font-weight: 600;
   margin-bottom: 0.5em;
   letter-spacing: -0.01em;
 }
 
 .editor-container .tiptap h3 {
-  font-size: 1.1rem;
+  font-size: 1.1em;
   font-weight: 600;
   margin-bottom: 0.5em;
 }
@@ -3151,4 +3152,77 @@ body {
 .note-preview-locked {
   filter: blur(4px);
   user-select: none;
+}
+
+
+/* Language toggle */
+.lang-toggle {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.lang-btn {
+  padding: 5px 14px;
+  border: none;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all var(--transition);
+}
+
+.lang-btn:first-child {
+  border-right: 1px solid var(--border);
+}
+
+.lang-btn.active {
+  background: var(--accent);
+  color: white;
+}
+
+.lang-btn:hover:not(.active) {
+  background: var(--bg-hover);
+}
+
+
+/* Onboarding preferences */
+.onboarding-preferences {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+}
+
+.onboarding-pref-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.88rem;
+}
+
+
+/* Inline font size control in editor toolbar */
+.font-size-inline {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 2px 4px;
+}
+
+.font-size-inline-value {
+  font-size: 0.7rem;
+  font-weight: 600;
+  min-width: 20px;
+  text-align: center;
+  color: var(--text-secondary);
 }

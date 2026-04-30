@@ -1,5 +1,6 @@
 import React from 'react';
 import { Note } from '../types';
+import { useLang } from '../LangContext';
 
 interface Props {
   notes: Note[];
@@ -7,13 +8,15 @@ interface Props {
   onStatusChange: (noteId: string, status: 'todo' | 'inprogress' | 'done') => void;
 }
 
-const columns: { key: 'todo' | 'inprogress' | 'done'; label: string }[] = [
-  { key: 'todo', label: 'Do zrobienia' },
-  { key: 'inprogress', label: 'W trakcie' },
-  { key: 'done', label: 'Gotowe' },
-];
-
 function KanbanView({ notes, onSelect, onStatusChange }: Props) {
+  const { t } = useLang();
+
+  const columns: { key: 'todo' | 'inprogress' | 'done'; label: string }[] = [
+    { key: 'todo', label: t('kanbanTodo') },
+    { key: 'inprogress', label: t('kanbanInProgress') },
+    { key: 'done', label: t('kanbanDone') },
+  ];
+
   const handleDragStart = (e: React.DragEvent, noteId: string) => {
     e.dataTransfer.setData('noteId', noteId);
     e.dataTransfer.effectAllowed = 'move';
@@ -66,7 +69,7 @@ function KanbanView({ notes, onSelect, onStatusChange }: Props) {
                   onDragStart={(e) => handleDragStart(e, note.id)}
                   onClick={() => onSelect(note)}
                 >
-                  <h4>{note.title || 'Bez tytułu'}</h4>
+                  <h4>{note.title || t('untitled')}</h4>
                   <p>{stripHtml(note.content).slice(0, 60)}</p>
                   {(note.tags || []).length > 0 && (
                     <div className="kanban-card-tags">

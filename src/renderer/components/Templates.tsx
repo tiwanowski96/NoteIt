@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLang } from '../LangContext';
 
 export interface Template {
   id: string;
@@ -46,19 +47,29 @@ interface Props {
 }
 
 function TemplateModal({ onSelect, onClose }: Props) {
+  const { t } = useLang();
+
+  const templateNames: Record<string, () => string> = {
+    meeting: () => t('templateMeeting'),
+    todo: () => t('templateTodo'),
+    journal: () => t('templateJournal'),
+    project: () => t('templateProject'),
+    brainstorm: () => t('templateBrainstorm'),
+  };
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
-        <h3>Nowa notatka</h3>
+        <h3>{t('newNoteTitle')}</h3>
         <div className="templates-grid">
           <button className="template-card" onClick={() => onSelect(undefined)}>
             <span className="template-icon">+</span>
-            <span className="template-name">Pusta</span>
+            <span className="template-name">{t('templateEmpty')}</span>
           </button>
-          {templates.map((t) => (
-            <button key={t.id} className="template-card" onClick={() => onSelect(t)}>
-              <span className="template-icon">{t.icon}</span>
-              <span className="template-name">{t.name}</span>
+          {templates.map((tmpl) => (
+            <button key={tmpl.id} className="template-card" onClick={() => onSelect(tmpl)}>
+              <span className="template-icon">{tmpl.icon}</span>
+              <span className="template-name">{templateNames[tmpl.id] ? templateNames[tmpl.id]() : tmpl.name}</span>
             </button>
           ))}
         </div>

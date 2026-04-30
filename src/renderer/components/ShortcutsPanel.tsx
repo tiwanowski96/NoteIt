@@ -1,116 +1,119 @@
 import React from 'react';
+import { useLang } from '../LangContext';
 
 interface Props {
   onClose: () => void;
 }
 
 function ShortcutsPanel({ onClose }: Props) {
+  const { t } = useLang();
+
   return (
     <div className="shortcuts-overlay" onClick={onClose}>
       <div className="shortcuts-panel" onClick={(e) => e.stopPropagation()}>
-        <h3>Skroty klawiszowe</h3>
+        <h3>{t('shortcuts')}</h3>
 
         <div className="shortcut-group">
-          <h4>Globalne (z dowolnej aplikacji)</h4>
+          <h4>{t('global')}</h4>
           <div className="shortcut-row">
-            <span>Otworz notatki</span>
+            <span>{t('openNotes')}</span>
             <span className="shortcut-key"><kbd>Ctrl</kbd>+<kbd>Q</kbd></span>
           </div>
           <div className="shortcut-row">
-            <span>Ostatnia notatka</span>
+            <span>{t('lastNote')}</span>
             <span className="shortcut-key"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Q</kbd></span>
           </div>
           <div className="shortcut-row">
-            <span>Screenshot do notatki</span>
+            <span>{t('screenshotToNote')}</span>
             <span className="shortcut-key"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd></span>
           </div>
           <div className="shortcut-row">
-            <span>Screenshot do schowka</span>
+            <span>{t('screenshotToClipboard')}</span>
             <span className="shortcut-key"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd></span>
           </div>
           <div className="shortcut-row">
-            <span>Schowek jako nowa notatka</span>
+            <span>{t('clipboardToNote')}</span>
             <span className="shortcut-key"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd></span>
           </div>
         </div>
 
         <div className="shortcut-group">
-          <h4>Lista notatek</h4>
+          <h4>{t('notesList')}</h4>
           <div className="shortcut-row">
-            <span>Nowa notatka</span>
+            <span>{t('newNote')}</span>
             <span className="shortcut-key"><kbd>Ctrl</kbd>+<kbd>N</kbd></span>
           </div>
           <div className="shortcut-row">
-            <span>Szukaj notatki (palette)</span>
+            <span>{t('searchNote')}</span>
             <span className="shortcut-key"><kbd>Ctrl</kbd>+<kbd>P</kbd></span>
           </div>
           <div className="shortcut-row">
-            <span>Pokaz skroty</span>
+            <span>{t('showShortcuts')}</span>
             <span className="shortcut-key"><kbd>?</kbd></span>
           </div>
         </div>
 
         <div className="shortcut-group">
-          <h4>Edytor tekstu</h4>
+          <h4>{t('editor')}</h4>
           <div className="shortcut-row">
-            <span>Szukaj i zamien</span>
+            <span>{t('searchReplace')}</span>
             <span className="shortcut-key"><kbd>Ctrl</kbd>+<kbd>F</kbd></span>
           </div>
           <div className="shortcut-row">
-            <span>Slash commands</span>
+            <span>{t('slashCommands')}</span>
             <span className="shortcut-key"><kbd>/</kbd></span>
           </div>
           <div className="shortcut-row">
-            <span>Pogrubienie</span>
+            <span>{t('bold')}</span>
             <span className="shortcut-key"><kbd>Ctrl</kbd>+<kbd>B</kbd></span>
           </div>
           <div className="shortcut-row">
-            <span>Kursywa</span>
+            <span>{t('italic')}</span>
             <span className="shortcut-key"><kbd>Ctrl</kbd>+<kbd>I</kbd></span>
           </div>
           <div className="shortcut-row">
-            <span>Przekreslenie</span>
+            <span>{t('strikethrough')}</span>
             <span className="shortcut-key"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd></span>
           </div>
           <div className="shortcut-row">
-            <span>Cofnij / Ponow</span>
+            <span>{t('undo')} / {t('redo')}</span>
             <span className="shortcut-key"><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Y</kbd></span>
           </div>
           <div className="shortcut-row">
-            <span>Wklej obraz/tabele</span>
+            <span>{t('pasteImage')}</span>
             <span className="shortcut-key"><kbd>Ctrl</kbd>+<kbd>V</kbd></span>
           </div>
         </div>
 
         <div className="shortcut-group">
-          <h4>Okno notatki</h4>
+          <h4>{t('noteWindow')}</h4>
           <div className="shortcut-row">
-            <span>Zawsze na wierzchu</span>
-            <span className="shortcut-key">Ikona pinezki</span>
+            <span>{t('alwaysOnTop')}</span>
+            <span className="shortcut-key">{t('pinIcon')}</span>
           </div>
           <div className="shortcut-row">
-            <span>Sticky note na pulpicie</span>
-            <span className="shortcut-key">Ikona karteczki</span>
+            <span>{t('stickyNote')}</span>
+            <span className="shortcut-key">{t('stickyIcon')}</span>
           </div>
           <div className="shortcut-row">
-            <span>Spis tresci</span>
-            <span className="shortcut-key">Ikona linii</span>
+            <span>{t('tableOfContents')}</span>
+            <span className="shortcut-key">{t('tocIcon')}</span>
           </div>
           <div className="shortcut-row">
-            <span>Emoji</span>
-            <span className="shortcut-key">Ikona usmiech</span>
+            <span>{t('emoji')}</span>
+            <span className="shortcut-key">{t('emojiIcon')}</span>
           </div>
           <div className="shortcut-row">
-            <span>Eksport .md</span>
-            <span className="shortcut-key">Ikona pobierania</span>
+            <span>{t('exportMd')}</span>
+            <span className="shortcut-key">{t('downloadIcon')}</span>
           </div>
           <div className="shortcut-row">
-            <span>Przypomnienie</span>
-            <span className="shortcut-key">Ikona dzwonka</span>
+            <span>{t('reminder')}</span>
+            <span className="shortcut-key">{t('bellIcon')}</span>
           </div>
           <div className="shortcut-row">
-            <span>Szyfrowanie PIN</span>
-            <span className="shortcut-key">Ikona klodki</span>
+            <span>{t('lockNote')}</span>
+            <span className="shortcut-key">{t('lockIcon')}</span>
           </div>
         </div>
       </div>

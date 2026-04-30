@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Note } from './types';
+import { Lang } from './i18n';
+import { LangProvider } from './LangContext';
 import NotesList from './components/NotesList';
 import NoteEditor from './components/NoteEditor';
 import TemplateModal, { Template } from './components/Templates';
@@ -24,7 +26,9 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [fontSize, setFontSize] = useState(15);
+  const [editorFontSize, setEditorFontSize] = useState(15);
   const [alwaysOnTop, setAlwaysOnTop] = useState(false);
+  const [lang, setLang] = useState<Lang>('en');
   const [showPomodoro, setShowPomodoro] = useState(false);
   const [showPomodoroMini, setShowPomodoroMini] = useState(false);
   const [showUnlock, setShowUnlock] = useState<Note | null>(null);
@@ -128,8 +132,13 @@ function App() {
     if (savedFontSize) {
       const size = Number(savedFontSize);
       setFontSize(size);
-      document.documentElement.style.setProperty('--app-font-size', `${size}px`);
+      const zoom = size / 15;
+      document.documentElement.style.setProperty('--app-zoom', String(zoom));
     }
+    const savedEditorFontSize = localStorage.getItem('noteit-editor-font-size');
+    if (savedEditorFontSize) setEditorFontSize(Number(savedEditorFontSize));
+    const savedLang = localStorage.getItem('noteit-lang') as Lang | null;
+    if (savedLang) setLang(savedLang);
     // Show onboarding on first launch
     if (!windowMode && !localStorage.getItem('noteit-onboarded')) {
       setShowOnboarding(true);
@@ -232,7 +241,18 @@ function App() {
   const handleFontSizeChange = (size: number) => {
     setFontSize(size);
     localStorage.setItem('noteit-font-size', String(size));
-    document.documentElement.style.setProperty('--app-font-size', `${size}px`);
+    const zoom = size / 15; // 12=0.8, 15=1.0, 18=1.2
+    document.documentElement.style.setProperty('--app-zoom', String(zoom));
+  };
+
+  const handleEditorFontSizeChange = (size: number) => {
+    setEditorFontSize(size);
+    localStorage.setItem('noteit-editor-font-size', String(size));
+  };
+
+  const handleLangChange = (newLang: Lang) => {
+    setLang(newLang);
+    localStorage.setItem('noteit-lang', newLang);
   };
 
   const handleToggleAlwaysOnTop = () => {
@@ -375,6 +395,7 @@ function App() {
   // Editor window mode
   if ((windowMode === 'editor' || windowMode === 'last') && selectedNote) {
     return (
+      <LangProvider lang={lang}>
       <div className="app">
         <WindowControls />
         <NoteEditor
@@ -392,11 +413,13 @@ function App() {
           onCreateChild={handleCreateChildNote}
         />
       </div>
+      </LangProvider>
     );
   }
 
   // Main list window
   return (
+    <LangProvider lang={lang}>
     <div className="app">
       <WindowControls />
       {view === 'list' ? (
@@ -447,10 +470,16 @@ function App() {
         <ShortcutsPanel onClose={() => setShowShortcuts(false)} />
       )}
       {showOnboarding && (
-        <Onboarding onComplete={() => {
-          setShowOnboarding(false);
-          localStorage.setItem('noteit-onboarded', 'true');
-        }} />
+        <Onboarding
+          onComplete={() => {
+            setShowOnboarding(false);
+            localStorage.setItem('noteit-onboarded', 'true');
+          }}
+          lang={lang}
+          onLangChange={handleLangChange}
+          theme={theme}
+          onThemeChange={toggleTheme}
+        />
       )}
       {showCommandPalette && (
         <CommandPalette
@@ -463,6 +492,8 @@ function App() {
         <Settings
           fontSize={fontSize}
           onFontSizeChange={handleFontSizeChange}
+          lang={lang}
+          onLangChange={handleLangChange}
           onClose={() => setShowSettings(false)}
         />
       )}
@@ -512,6 +543,7 @@ function App() {
         />
       )}
     </div>
+    </LangProvider>
   );
 }
 

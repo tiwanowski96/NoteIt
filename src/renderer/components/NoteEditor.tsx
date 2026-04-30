@@ -23,6 +23,7 @@ import Breadcrumbs from './Breadcrumbs';
 import NoteChildren from './NoteChildren';
 import SlashCommands from './SlashCommands';
 import { LockModal, RemoveLockModal } from './LockNote';
+import { useLang } from '../LangContext';
 
 interface Props {
   note: Note;
@@ -31,7 +32,6 @@ interface Props {
   onDelete: () => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
-  fontSize: number;
   alwaysOnTop: boolean;
   onToggleAlwaysOnTop: () => void;
   allNotes?: Note[];
@@ -39,17 +39,16 @@ interface Props {
   onCreateChild?: (parentId: string) => void;
 }
 
-const noteColors = [
-  { label: 'Brak', key: '', light: '', dark: '' },
-  { label: 'Czerwony', key: 'red', light: '#fef2f2', dark: '#3b1c1c' },
-  { label: 'Niebieski', key: 'blue', light: '#eff6ff', dark: '#1c2a3b' },
-  { label: 'Zielony', key: 'green', light: '#f0fdf4', dark: '#1c3b24' },
-  { label: 'Żółty', key: 'yellow', light: '#fefce8', dark: '#3b3a1c' },
-  { label: 'Fioletowy', key: 'purple', light: '#faf5ff', dark: '#2d1c3b' },
-  { label: 'Pomarańczowy', key: 'orange', light: '#fff7ed', dark: '#3b2a1c' },
-];
-
 function getColorHex(colorKey: string, currentTheme: 'light' | 'dark'): string {
+  const noteColors = [
+    { label: '', key: '', light: '', dark: '' },
+    { label: '', key: 'red', light: '#fef2f2', dark: '#3b1c1c' },
+    { label: '', key: 'blue', light: '#eff6ff', dark: '#1c2a3b' },
+    { label: '', key: 'green', light: '#f0fdf4', dark: '#1c3b24' },
+    { label: '', key: 'yellow', light: '#fefce8', dark: '#3b3a1c' },
+    { label: '', key: 'purple', light: '#faf5ff', dark: '#2d1c3b' },
+    { label: '', key: 'orange', light: '#fff7ed', dark: '#3b2a1c' },
+  ];
   const found = noteColors.find((c) => c.key === colorKey);
   if (!found) return '';
   return currentTheme === 'dark' ? found.dark : found.light;
@@ -65,7 +64,8 @@ function toLocalDatetimeString(isoString: string): string {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
-function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, fontSize, alwaysOnTop, onToggleAlwaysOnTop, allNotes, onNavigateNote, onCreateChild }: Props) {
+function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, alwaysOnTop, onToggleAlwaysOnTop, allNotes, onNavigateNote, onCreateChild }: Props) {
+  const { t } = useLang();
   const [title, setTitle] = useState(note.title);
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>(note.tags || []);
@@ -83,11 +83,25 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
   const [showReplace, setShowReplace] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
+  const [localFontSize, setLocalFontSize] = useState(() => {
+    const saved = localStorage.getItem('noteit-editor-font-size');
+    return saved ? Number(saved) : 15;
+  });
   const [slashCommand, setSlashCommand] = useState<{ top: number; left: number } | null>(null);
   const [showLockModal, setShowLockModal] = useState(false);
   const [showRemoveLockModal, setShowRemoveLockModal] = useState(false);
   const [removeLockError, setRemoveLockError] = useState(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const noteColors = [
+    { label: t('colorNone'), key: '', light: '', dark: '' },
+    { label: t('colorRed'), key: 'red', light: '#fef2f2', dark: '#3b1c1c' },
+    { label: t('colorBlue'), key: 'blue', light: '#eff6ff', dark: '#1c2a3b' },
+    { label: t('colorGreen'), key: 'green', light: '#f0fdf4', dark: '#1c3b24' },
+    { label: t('colorYellow'), key: 'yellow', light: '#fefce8', dark: '#3b3a1c' },
+    { label: t('colorPurple'), key: 'purple', light: '#faf5ff', dark: '#2d1c3b' },
+    { label: t('colorOrange'), key: 'orange', light: '#fff7ed', dark: '#3b2a1c' },
+  ];
 
   const editor = useEditor({
     extensions: [
@@ -277,6 +291,11 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
     return unsub;
   }, [editor]);
 
+  // Save editor font size
+  useEffect(() => {
+    localStorage.setItem('noteit-editor-font-size', String(localFontSize));
+  }, [localFontSize]);
+
   // Ctrl+F shortcut
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -348,7 +367,7 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
-    const newTags = tags.filter((t) => t !== tagToRemove);
+    const newTags = tags.filter((tg) => tg !== tagToRemove);
     setTags(newTags);
     onSave({ ...note, title, content: editor?.getHTML() ?? note.content, tags: newTags, color });
   };
@@ -460,7 +479,7 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
         <div className="editor-header-left">
           <button className="btn btn-secondary" onClick={onBack}>
             <ArrowLeftIcon size={15} />
-            Wróć
+            {t('back')}
           </button>
         </div>
         <div className="editor-header-right">
@@ -470,14 +489,14 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
             className="control-select"
             value={color}
             onChange={(e) => handleColorChange(e.target.value)}
-            title="Kolor notatki"
-            aria-label="Kolor notatki"
+            title={t('colorNone')}
+            aria-label={t('colorNone')}
           >
             {noteColors.map((c) => (
               <option key={c.key} value={c.key}>{c.label}</option>
             ))}
           </select>
-          <button className="btn-icon" onClick={() => handleExport('md')} title="Eksportuj jako Markdown">
+          <button className="btn-icon" onClick={() => handleExport('md')} title={t('exportMd')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
@@ -487,7 +506,7 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
             onChange={(iso) => handleReminderChange(iso)}
             onClear={() => handleReminderChange('')}
           />
-          <button className="btn-icon btn-delete" onClick={() => setConfirmDelete(true)} title="Usun notatke" aria-label="Usun notatke">
+          <button className="btn-icon btn-delete" onClick={() => setConfirmDelete(true)} title={t('deleteNote')} aria-label={t('deleteNote')}>
             <TrashIcon size={16} />
           </button>
           <button
@@ -499,8 +518,8 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
                 setShowLockModal(true);
               }
             }}
-            title={isLocked ? 'Usun szyfrowanie' : 'Zaszyfruj notatke'}
-            aria-label="Szyfrowanie"
+            title={isLocked ? t('unlockNote') : t('lockNote')}
+            aria-label={isLocked ? t('unlockNote') : t('lockNote')}
           >
             {isLocked ? (
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -515,8 +534,8 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
           <button
             className={`btn-icon ${alwaysOnTop ? 'reminder-active' : ''}`}
             onClick={onToggleAlwaysOnTop}
-            title={alwaysOnTop ? 'Wylacz zawsze na wierzchu' : 'Zawsze na wierzchu'}
-            aria-label="Zawsze na wierzchu"
+            title={t('alwaysOnTop')}
+            aria-label={t('alwaysOnTop')}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill={alwaysOnTop ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2C9.243 2 7 4.243 7 7c0 2.475 1.639 4.57 3.89 5.271L12 22l1.11-9.729C15.361 11.57 17 9.475 17 7c0-2.757-2.243-5-5-5z"/>
@@ -525,8 +544,8 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
           <button
             className="btn-icon"
             onClick={() => window.electronAPI.openStickyNote(note.id)}
-            title="Przypnij na pulpicie"
-            aria-label="Sticky note"
+            title={t('stickyNote')}
+            aria-label={t('stickyNote')}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z"/><path d="M14 3v4a2 2 0 0 0 2 2h4"/>
@@ -535,8 +554,8 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
           <button
             className="theme-toggle"
             onClick={onToggleTheme}
-            title={theme === 'light' ? 'Ciemny motyw' : 'Jasny motyw'}
-            aria-label={theme === 'light' ? 'Przełącz na ciemny motyw' : 'Przełącz na jasny motyw'}
+            title={theme === 'light' ? t('darkTheme') : t('lightTheme')}
+            aria-label={theme === 'light' ? t('darkTheme') : t('lightTheme')}
           >
             {theme === 'light' ? <MoonIcon /> : <SunIcon />}
           </button>
@@ -549,7 +568,7 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
         value={title}
         onChange={handleTitleChange}
         onBlur={handleTitleBlur}
-        placeholder="Tytuł notatki..."
+        placeholder={t('noteTitle')}
         maxLength={80}
       />
 
@@ -568,7 +587,7 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
           {tags.map((tag) => (
             <span key={tag} className="tag">
               {tag}
-              <button className="tag-remove" onClick={() => handleRemoveTag(tag)} aria-label={`Usuń tag ${tag}`}>&times;</button>
+              <button className="tag-remove" onClick={() => handleRemoveTag(tag)} aria-label={`${t('remove')} ${tag}`}>&times;</button>
             </span>
           ))}
         </div>
@@ -576,7 +595,7 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
           <input
             type="text"
             className="tag-input"
-            placeholder="Dodaj tag (Enter)..."
+            placeholder={t('addTag')}
             value={tagInput}
             onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={handleAddTag}
@@ -591,8 +610,8 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
             <button
               className={`btn-icon find-toggle-replace ${showReplace ? 'expanded' : ''}`}
               onClick={() => setShowReplace(!showReplace)}
-              title="Pokaż zamień"
-              aria-label="Pokaż zamień"
+              title={t('replace')}
+              aria-label={t('replace')}
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="6 9 12 15 18 9"/>
@@ -601,7 +620,7 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
             <input
               type="text"
               className="find-input"
-              placeholder="Szukaj..."
+              placeholder={t('searchInNote')}
               value={findText}
               onChange={(e) => { setFindText(e.target.value); setActiveMatch(0); }}
               onKeyDown={(e) => e.key === 'Enter' && handleFindNext()}
@@ -610,13 +629,13 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
             {findCount > 0 && (
               <span className="find-count">{activeMatch + 1}/{findCount}</span>
             )}
-            <button className="btn-icon" onClick={handleFindPrev} title="Poprzednie" disabled={findCount === 0}>
+            <button className="btn-icon" onClick={handleFindPrev} title={t('next')} disabled={findCount === 0}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
             </button>
-            <button className="btn-icon" onClick={handleFindNext} title="Następne" disabled={findCount === 0}>
+            <button className="btn-icon" onClick={handleFindNext} title={t('next')} disabled={findCount === 0}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
-            <button className="btn-icon" onClick={closeFind} aria-label="Zamknij">
+            <button className="btn-icon" onClick={closeFind} aria-label={t('close')}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
@@ -625,13 +644,13 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
               <input
                 type="text"
                 className="find-input"
-                placeholder="Zamień na..."
+                placeholder={t('replaceWith')}
                 value={replaceText}
                 onChange={(e) => setReplaceText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleReplace()}
               />
-              <button className="btn btn-secondary btn-sm" onClick={handleReplace} disabled={findCount === 0}>Zamień</button>
-              <button className="btn btn-secondary btn-sm" onClick={handleReplaceAll} disabled={findCount === 0}>Wszystkie</button>
+              <button className="btn btn-secondary btn-sm" onClick={handleReplace} disabled={findCount === 0}>{t('replace')}</button>
+              <button className="btn btn-secondary btn-sm" onClick={handleReplaceAll} disabled={findCount === 0}>{t('replaceAll')}</button>
             </div>
           )}
         </div>
@@ -645,8 +664,8 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
               <button
                 className="btn-icon"
                 onClick={() => setShowEmoji(!showEmoji)}
-                title="Emoji"
-                aria-label="Wstaw emoji"
+                title={t('emoji')}
+                aria-label={t('emoji')}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>
@@ -660,11 +679,20 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
               )}
             </div>
             <TableOfContents editor={editor} />
+            <div className="font-size-inline">
+              <button className="btn-icon" onClick={() => setLocalFontSize(Math.max(12, localFontSize - 1))} title="A-">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+              <span className="font-size-inline-value">{localFontSize}</span>
+              <button className="btn-icon" onClick={() => setLocalFontSize(Math.min(22, localFontSize + 1))} title="A+">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="editor-container" onClick={(e) => {
+      <div className="editor-container" style={{ fontSize: `${localFontSize}px` }} onClick={(e) => {
         const target = e.target as HTMLElement;
         if (target.closest('.dtp-dropdown, .find-bar, input, select, button')) return;
         editor?.chain().focus().run();
@@ -691,19 +719,19 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
       )}
 
       <div className="editor-footer">
-        <span className="hint">Ctrl+V wklej screenshot | Ctrl+F szukaj | Przeciągnij obraz</span>
-        <span className="word-count">{wordCount} słów · {charCount} znaków</span>
+        <span className="hint">{t('pasteScreenshot')}</span>
+        <span className="word-count">{wordCount} {t('words')} · {charCount} {t('chars')}</span>
       </div>
 
       {/* Delete confirmation */}
       {confirmDelete && (
         <div className="modal-overlay" onClick={() => setConfirmDelete(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Przenieść do kosza?</h3>
-            <p>Notatka trafi do kosza na 30 dni.</p>
+            <h3>{t('moveToTrash')}</h3>
+            <p>{t('trashInfo')}</p>
             <div className="modal-actions">
-              <button className="btn btn-secondary" onClick={() => setConfirmDelete(false)}>Anuluj</button>
-              <button className="btn btn-danger" onClick={() => { setConfirmDelete(false); onDelete(); }}>Usuń</button>
+              <button className="btn btn-secondary" onClick={() => setConfirmDelete(false)}>{t('cancel')}</button>
+              <button className="btn btn-danger" onClick={() => { setConfirmDelete(false); onDelete(); }}>{t('delete')}</button>
             </div>
           </div>
         </div>
@@ -744,11 +772,11 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, font
       {showNoteLinkModal && (
         <div className="modal-overlay" onClick={() => setShowNoteLinkModal(false)}>
           <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
-            <h3>Link do notatki</h3>
+            <h3>{t('noteLink')}</h3>
             <input
               type="text"
               className="find-input"
-              placeholder="Szukaj notatki..."
+              placeholder={t('searchNotePlaceholder')}
               value={noteLinkSearch}
               onChange={(e) => setNoteLinkSearch(e.target.value)}
               autoFocus

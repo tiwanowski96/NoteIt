@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLang } from '../LangContext';
 
 interface LockModalProps {
   onLock: (pin: string) => void;
@@ -6,17 +7,18 @@ interface LockModalProps {
 }
 
 export function LockModal({ onLock, onClose }: LockModalProps) {
+  const { t } = useLang();
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [error, setError] = useState('');
 
   const handleSubmit = () => {
     if (pin.length < 4) {
-      setError('PIN musi miec minimum 4 znaki');
+      setError(t('pinMin'));
       return;
     }
     if (pin !== confirmPin) {
-      setError('PIN-y nie sa identyczne');
+      setError(t('pinMismatch'));
       return;
     }
     onLock(pin);
@@ -25,14 +27,14 @@ export function LockModal({ onLock, onClose }: LockModalProps) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <h3>Zaszyfruj notatke</h3>
+        <h3>{t('encryptNote')}</h3>
         <p style={{ marginBottom: 16, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-          Ustaw PIN aby zabezpieczyc notatke. Bez PIN-u nie bedzie mozna jej otworzyc.
+          {t('setPinDesc')}
         </p>
         <input
           type="password"
           className="find-input"
-          placeholder="PIN (min. 4 znaki)"
+          placeholder={t('pinPlaceholder')}
           value={pin}
           onChange={(e) => { setPin(e.target.value); setError(''); }}
           style={{ marginBottom: 8 }}
@@ -41,7 +43,7 @@ export function LockModal({ onLock, onClose }: LockModalProps) {
         <input
           type="password"
           className="find-input"
-          placeholder="Potwierdz PIN"
+          placeholder={t('confirmPin')}
           value={confirmPin}
           onChange={(e) => { setConfirmPin(e.target.value); setError(''); }}
           onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
@@ -49,8 +51,8 @@ export function LockModal({ onLock, onClose }: LockModalProps) {
         />
         {error && <p style={{ color: 'var(--danger)', fontSize: '0.8rem', marginBottom: 8 }}>{error}</p>}
         <div className="modal-actions">
-          <button className="btn btn-secondary" onClick={onClose}>Anuluj</button>
-          <button className="btn btn-primary" onClick={handleSubmit}>Zaszyfruj</button>
+          <button className="btn btn-secondary" onClick={onClose}>{t('cancel')}</button>
+          <button className="btn btn-primary" onClick={handleSubmit}>{t('encrypt')}</button>
         </div>
       </div>
     </div>
@@ -64,6 +66,7 @@ interface UnlockModalProps {
 }
 
 export function UnlockModal({ onUnlock, onClose, error }: UnlockModalProps) {
+  const { t } = useLang();
   const [pin, setPin] = useState('');
 
   return (
@@ -74,8 +77,8 @@ export function UnlockModal({ onUnlock, onClose, error }: UnlockModalProps) {
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
           </svg>
         </div>
-        <h3>Notatka zaszyfrowana</h3>
-        <p className="unlock-desc">Wprowadz PIN aby odczytac notatke</p>
+        <h3>{t('noteEncrypted')}</h3>
+        <p className="unlock-desc">{t('enterPin')}</p>
         <input
           type="password"
           className="unlock-input"
@@ -85,10 +88,10 @@ export function UnlockModal({ onUnlock, onClose, error }: UnlockModalProps) {
           onKeyDown={(e) => e.key === 'Enter' && pin && onUnlock(pin)}
           autoFocus
         />
-        {error && <p className="unlock-error">Nieprawidlowy PIN</p>}
+        {error && <p className="unlock-error">{t('wrongPin')}</p>}
         <div className="modal-actions">
-          <button className="btn btn-secondary" onClick={onClose}>Anuluj</button>
-          <button className="btn btn-primary" onClick={() => onUnlock(pin)} disabled={!pin}>Odblokuj</button>
+          <button className="btn btn-secondary" onClick={onClose}>{t('cancel')}</button>
+          <button className="btn btn-primary" onClick={() => onUnlock(pin)} disabled={!pin}>{t('unlock')}</button>
         </div>
       </div>
     </div>
@@ -103,6 +106,7 @@ interface RemoveLockModalProps {
 }
 
 export function RemoveLockModal({ onRemove, onClose, error }: RemoveLockModalProps) {
+  const { t } = useLang();
   const [pin, setPin] = useState('');
 
   return (
@@ -113,8 +117,8 @@ export function RemoveLockModal({ onRemove, onClose, error }: RemoveLockModalPro
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 5-5 5 5 0 0 1 5 5"/>
           </svg>
         </div>
-        <h3>Usun szyfrowanie</h3>
-        <p className="unlock-desc">Wprowadz PIN aby usunac blokade</p>
+        <h3>{t('removeEncryption')}</h3>
+        <p className="unlock-desc">{t('enterPinToRemove')}</p>
         <input
           type="password"
           className="unlock-input"
@@ -124,10 +128,10 @@ export function RemoveLockModal({ onRemove, onClose, error }: RemoveLockModalPro
           onKeyDown={(e) => e.key === 'Enter' && pin && onRemove(pin)}
           autoFocus
         />
-        {error && <p className="unlock-error">Nieprawidlowy PIN</p>}
+        {error && <p className="unlock-error">{t('wrongPin')}</p>}
         <div className="modal-actions">
-          <button className="btn btn-secondary" onClick={onClose}>Anuluj</button>
-          <button className="btn btn-danger" onClick={() => onRemove(pin)} disabled={!pin}>Usun blokade</button>
+          <button className="btn btn-secondary" onClick={onClose}>{t('cancel')}</button>
+          <button className="btn btn-danger" onClick={() => onRemove(pin)} disabled={!pin}>{t('removeLock')}</button>
         </div>
       </div>
     </div>

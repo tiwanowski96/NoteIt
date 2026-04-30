@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLang } from '../LangContext';
 
 interface Props {
   mode: 'work' | 'break';
@@ -22,6 +23,7 @@ function PomodoroTimer({
   onToggleRunning, onReset, onSkip, onSetMode, onSetWorkMinutes, onSetBreakMinutes,
   onClose, onMiniMode
 }: Props) {
+  const { t } = useLang();
 
   function formatTime(seconds: number): string {
     const m = Math.floor(seconds / 60);
@@ -38,8 +40,8 @@ function PomodoroTimer({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-pomodoro" onClick={(e) => e.stopPropagation()}>
         <div className="pomodoro-header">
-          <h3>Pomodoro</h3>
-          <span className="pomodoro-sessions">{sessions} sesji</span>
+          <h3>{t('pomodoro')}</h3>
+          <span className="pomodoro-sessions">{sessions} {t('sessions')}</span>
         </div>
 
         <div className="pomodoro-mode-toggle">
@@ -47,13 +49,13 @@ function PomodoroTimer({
             className={`pomodoro-mode-btn ${mode === 'work' ? 'active' : ''}`}
             onClick={() => onSetMode('work')}
           >
-            Praca
+            {t('work')}
           </button>
           <button
             className={`pomodoro-mode-btn ${mode === 'break' ? 'active' : ''}`}
             onClick={() => onSetMode('break')}
           >
-            Przerwa
+            {t('break')}
           </button>
         </div>
 
@@ -75,12 +77,12 @@ function PomodoroTimer({
         </div>
 
         <div className="pomodoro-controls">
-          <button className="btn btn-secondary btn-sm" onClick={onReset}>Reset</button>
+          <button className="btn btn-secondary btn-sm" onClick={onReset}>{t('reset')}</button>
           <button className="btn btn-primary" onClick={onToggleRunning}>
-            {isRunning ? 'Pauza' : 'Start'}
+            {isRunning ? t('pause') : t('start')}
           </button>
-          <button className="btn btn-secondary btn-sm" onClick={onSkip}>Pomiń</button>
-          <button className="btn btn-secondary btn-sm" onClick={onMiniMode} title="Mini tryb">
+          <button className="btn btn-secondary btn-sm" onClick={onSkip}>{t('skip')}</button>
+          <button className="btn btn-secondary btn-sm" onClick={onMiniMode} title={t('miniMode')}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/>
             </svg>
@@ -89,7 +91,7 @@ function PomodoroTimer({
 
         <div className="pomodoro-settings">
           <div className="pomodoro-setting">
-            <span>Praca</span>
+            <span>{t('work')}</span>
             <div className="pomodoro-setting-control">
               <button className="btn-icon" onClick={() => onSetWorkMinutes(Math.max(5, workMinutes - 5))}>-</button>
               <span>{workMinutes} min</span>
@@ -97,7 +99,7 @@ function PomodoroTimer({
             </div>
           </div>
           <div className="pomodoro-setting">
-            <span>Przerwa</span>
+            <span>{t('break')}</span>
             <div className="pomodoro-setting-control">
               <button className="btn-icon" onClick={() => onSetBreakMinutes(Math.max(1, breakMinutes - 1))}>-</button>
               <span>{breakMinutes} min</span>

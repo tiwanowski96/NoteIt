@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Note } from '../types';
+import { useLang } from '../LangContext';
 
 interface Props {
   notes: Note[];
@@ -8,6 +9,7 @@ interface Props {
 }
 
 function CommandPalette({ notes, onSelect, onClose }: Props) {
+  const { t } = useLang();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -54,7 +56,7 @@ function CommandPalette({ notes, onSelect, onClose }: Props) {
             ref={inputRef}
             type="text"
             className="command-palette-input"
-            placeholder="Szukaj notatki..."
+            placeholder={t('searchNotePlaceholder')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -62,7 +64,7 @@ function CommandPalette({ notes, onSelect, onClose }: Props) {
         </div>
         <div className="command-palette-results">
           {filtered.length === 0 ? (
-            <div className="command-palette-empty">Brak wyników</div>
+            <div className="command-palette-empty">{t('noResultsPalette')}</div>
           ) : (
             filtered.slice(0, 10).map((note, i) => (
               <button
@@ -80,9 +82,9 @@ function CommandPalette({ notes, onSelect, onClose }: Props) {
           )}
         </div>
         <div className="command-palette-footer">
-          <span><kbd>↑↓</kbd> nawiguj</span>
-          <span><kbd>Enter</kbd> otwórz</span>
-          <span><kbd>Esc</kbd> zamknij</span>
+          <span><kbd>↑↓</kbd> {t('navigate')}</span>
+          <span><kbd>Enter</kbd> {t('open')}</span>
+          <span><kbd>Esc</kbd> {t('close')}</span>
         </div>
       </div>
     </div>

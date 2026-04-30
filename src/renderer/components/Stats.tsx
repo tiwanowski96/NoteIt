@@ -1,5 +1,6 @@
 import React from 'react';
 import { Note } from '../types';
+import { useLang } from '../LangContext';
 
 interface Props {
   notes: Note[];
@@ -7,6 +8,7 @@ interface Props {
 }
 
 function Stats({ notes, onClose }: Props) {
+  const { t, pluralizeNotes } = useLang();
   const activeNotes = notes.filter((n) => !n.deleted);
   const totalNotes = activeNotes.length;
   const totalWords = activeNotes.reduce((sum, n) => {
@@ -63,36 +65,36 @@ function Stats({ notes, onClose }: Props) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal modal-stats" onClick={(e) => e.stopPropagation()}>
-        <h3>Statystyki</h3>
+        <h3>{t('statistics')}</h3>
 
         <div className="stats-grid">
           <div className="stat-card">
             <span className="stat-value">{totalNotes}</span>
-            <span className="stat-label">Notatek</span>
+            <span className="stat-label">{t('totalNotes')}</span>
           </div>
           <div className="stat-card">
             <span className="stat-value">{totalWords}</span>
-            <span className="stat-label">Słów</span>
+            <span className="stat-label">{t('totalWords')}</span>
           </div>
           <div className="stat-card">
             <span className="stat-value">{totalTags}</span>
-            <span className="stat-label">Tagów</span>
+            <span className="stat-label">{t('totalTags')}</span>
           </div>
           <div className="stat-card">
             <span className="stat-value">{streak}</span>
-            <span className="stat-label">Dni streak</span>
+            <span className="stat-label">{t('streak')}</span>
           </div>
         </div>
 
         <div className="stats-section">
-          <h4>Aktywność (7 dni)</h4>
+          <h4>{t('activity7')}</h4>
           <div className="activity-chart">
             {weekActivity.map((d, i) => (
               <div key={i} className="activity-bar-wrapper">
                 <div
                   className="activity-bar"
                   style={{ height: `${(d.count / maxActivity) * 100}%` }}
-                  title={`${d.count} ${d.count === 1 ? 'notatka' : (d.count % 100 >= 12 && d.count % 100 <= 14) ? 'notatek' : (d.count % 10 >= 2 && d.count % 10 <= 4) ? 'notatki' : 'notatek'}`}
+                  title={`${d.count} ${pluralizeNotes(d.count)}`}
                 />
                 <span className="activity-day">{d.day}</span>
               </div>
@@ -102,17 +104,17 @@ function Stats({ notes, onClose }: Props) {
 
         <div className="stats-section">
           <div className="stats-row">
-            <span>Przypięte</span>
+            <span>{t('pinned')}</span>
             <span>{pinnedCount}</span>
           </div>
           <div className="stats-row">
-            <span>W koszu</span>
+            <span>{t('inTrash')}</span>
             <span>{notes.filter((n) => n.deleted).length}</span>
           </div>
         </div>
 
         <div className="modal-actions">
-          <button className="btn btn-primary" onClick={onClose}>Zamknij</button>
+          <button className="btn btn-primary" onClick={onClose}>{t('close')}</button>
         </div>
       </div>
     </div>
