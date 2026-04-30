@@ -33,6 +33,8 @@ export interface ElectronAPI {
   setTheme: (theme: string) => Promise<void>;
   setPomodoroRunning: (running: boolean) => Promise<void>;
   lockNote: (noteId: string, pin: string) => Promise<boolean>;
+  setAutoStart: (value: boolean) => Promise<void>;
+  getAutoStart: () => Promise<boolean>;
   unlockNote: (noteId: string, pin: string) => Promise<boolean>;
   removeLock: (noteId: string) => Promise<void>;
   setAlwaysOnTop: (value: boolean) => Promise<void>;

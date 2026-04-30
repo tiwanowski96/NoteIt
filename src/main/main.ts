@@ -761,6 +761,18 @@ ipcMain.handle('set-pomodoro-running', (_event, running: boolean) => {
   pomodoroIsRunning = running;
 });
 
+ipcMain.handle('set-auto-start', (_event, value: boolean) => {
+  app.setLoginItemSettings({
+    openAtLogin: value,
+    path: app.getPath('exe'),
+  });
+});
+
+ipcMain.handle('get-auto-start', () => {
+  const settings = app.getLoginItemSettings();
+  return settings.openAtLogin;
+});
+
 ipcMain.handle('lock-note', (_event, noteId: string, pin: string) => {
   const notes = store.get('notes');
   const note = notes.find((n: Note) => n.id === noteId);
@@ -940,7 +952,9 @@ ipcMain.handle('import-files', async () => {
   const result = await dialog.showOpenDialog({
     properties: ['openFile', 'multiSelections'],
     filters: [
+      { name: 'All supported', extensions: ['md', 'txt', 'markdown', 'zip'] },
       { name: 'Text files', extensions: ['md', 'txt', 'markdown'] },
+      { name: 'ZIP archive', extensions: ['zip'] },
     ],
   });
 
@@ -949,12 +963,8 @@ ipcMain.handle('import-files', async () => {
   const notes = store.get('notes');
   const crypto = require('crypto');
 
-  for (const filePath of result.filePaths) {
-    const content = fs.readFileSync(filePath, 'utf-8');
-    const fileName = path.basename(filePath, path.extname(filePath));
-
-    // Convert markdown-like content to basic HTML
-    const htmlContent = content
+  function mdToHtml(content: string): string {
+    return content
       .split('\n')
       .map((line: string) => {
         if (line.startsWith('### ')) return `<h3>${line.slice(4)}</h3>`;
@@ -968,15 +978,76 @@ ipcMain.handle('import-files', async () => {
         return `<p>${line}</p>`;
       })
       .join('');
+  }
 
+  function importTextFile(filePath: string) {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const fileName = path.basename(filePath, path.extname(filePath));
     const newNote: Note = {
       id: crypto.randomUUID(),
       title: fileName,
-      content: htmlContent,
+      content: mdToHtml(content),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     notes.push(newNote);
+  }
+
+  function parseZipFile(zipPath: string) {
+    const zipBuffer = fs.readFileSync(zipPath);
+    // Parse ZIP central directory
+    let offset = zipBuffer.length - 22;
+    // Find end of central directory
+    while (offset >= 0 && zipBuffer.readUInt32LE(offset) !== 0x06054b50) {
+      offset--;
+    }
+    if (offset < 0) return;
+
+    const centralDirOffset = zipBuffer.readUInt32LE(offset + 16);
+    const entryCount = zipBuffer.readUInt16LE(offset + 10);
+    let pos = centralDirOffset;
+
+    for (let i = 0; i < entryCount; i++) {
+      if (zipBuffer.readUInt32LE(pos) !== 0x02014b50) break;
+
+      const compressedSize = zipBuffer.readUInt32LE(pos + 20);
+      const uncompressedSize = zipBuffer.readUInt32LE(pos + 24);
+      const fileNameLen = zipBuffer.readUInt16LE(pos + 28);
+      const extraLen = zipBuffer.readUInt16LE(pos + 30);
+      const commentLen = zipBuffer.readUInt16LE(pos + 32);
+      const localHeaderOffset = zipBuffer.readUInt32LE(pos + 42);
+      const fileName = zipBuffer.slice(pos + 46, pos + 46 + fileNameLen).toString('utf-8');
+
+      // Read from local header
+      const localNameLen = zipBuffer.readUInt16LE(localHeaderOffset + 26);
+      const localExtraLen = zipBuffer.readUInt16LE(localHeaderOffset + 28);
+      const dataOffset = localHeaderOffset + 30 + localNameLen + localExtraLen;
+      const fileData = zipBuffer.slice(dataOffset, dataOffset + uncompressedSize);
+
+      // Only import .md and .txt files
+      if (fileName.endsWith('.md') || fileName.endsWith('.txt') || fileName.endsWith('.markdown')) {
+        const content = fileData.toString('utf-8');
+        const baseName = path.basename(fileName, path.extname(fileName));
+        const newNote: Note = {
+          id: crypto.randomUUID(),
+          title: baseName,
+          content: mdToHtml(content),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        notes.push(newNote);
+      }
+
+      pos += 46 + fileNameLen + extraLen + commentLen;
+    }
+  }
+
+  for (const filePath of result.filePaths) {
+    if (filePath.endsWith('.zip')) {
+      parseZipFile(filePath);
+    } else {
+      importTextFile(filePath);
+    }
   }
 
   store.set('notes', notes);

@@ -29,6 +29,7 @@ function App() {
   const [editorFontSize, setEditorFontSize] = useState(15);
   const [alwaysOnTop, setAlwaysOnTop] = useState(false);
   const [lang, setLang] = useState<Lang>('en');
+  const [autoStart, setAutoStart] = useState(true);
   const [showPomodoro, setShowPomodoro] = useState(false);
   const [showPomodoroMini, setShowPomodoroMini] = useState(false);
   const [showUnlock, setShowUnlock] = useState<Note | null>(null);
@@ -139,6 +140,8 @@ function App() {
     if (savedEditorFontSize) setEditorFontSize(Number(savedEditorFontSize));
     const savedLang = localStorage.getItem('noteit-lang') as Lang | null;
     if (savedLang) setLang(savedLang);
+    // Load autostart setting
+    window.electronAPI.getAutoStart().then((val) => setAutoStart(val));
     // Show onboarding on first launch
     if (!windowMode && !localStorage.getItem('noteit-onboarded')) {
       setShowOnboarding(true);
@@ -253,6 +256,11 @@ function App() {
   const handleLangChange = (newLang: Lang) => {
     setLang(newLang);
     localStorage.setItem('noteit-lang', newLang);
+  };
+
+  const handleAutoStartChange = (value: boolean) => {
+    setAutoStart(value);
+    window.electronAPI.setAutoStart(value);
   };
 
   const handleToggleAlwaysOnTop = () => {
@@ -494,6 +502,8 @@ function App() {
           onFontSizeChange={handleFontSizeChange}
           lang={lang}
           onLangChange={handleLangChange}
+          autoStart={autoStart}
+          onAutoStartChange={handleAutoStartChange}
           onClose={() => setShowSettings(false)}
         />
       )}

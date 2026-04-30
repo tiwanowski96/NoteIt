@@ -13,6 +13,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setTheme: (theme: string) => ipcRenderer.invoke('set-theme', theme),
   setPomodoroRunning: (running: boolean) => ipcRenderer.invoke('set-pomodoro-running', running),
   lockNote: (noteId: string, pin: string) => ipcRenderer.invoke('lock-note', noteId, pin),
+  setAutoStart: (value: boolean) => ipcRenderer.invoke('set-auto-start', value),
+  getAutoStart: () => ipcRenderer.invoke('get-auto-start'),
   unlockNote: (noteId: string, pin: string) => ipcRenderer.invoke('unlock-note', noteId, pin),
   removeLock: (noteId: string) => ipcRenderer.invoke('remove-lock', noteId),
   setAlwaysOnTop: (value: boolean) => ipcRenderer.invoke('set-always-on-top', value),
