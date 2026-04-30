@@ -57,8 +57,7 @@
         { "target": "appx", "arch": ["x64"] },
         { "target": "nsis", "arch": ["x64"] }
       ],
-      "icon": "assets/noteit.ico",
-      "signAndEditExecutable": false
+      "icon": "assets/noteit.ico"
     },
     "appx": {
       "identityName": "TheCloudestTomaszIwanowsk.NoteItNotes",

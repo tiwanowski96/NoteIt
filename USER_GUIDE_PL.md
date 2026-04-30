@@ -450,7 +450,7 @@ Dostep do ustawien z menu hamburger → "Ustawienia".
 NoteIt jest w pelni lokalna aplikacja dzialajaca offline:
 
 - **Wszystkie dane sa przechowywane lokalnie** na Twoim urzadzeniu za pomoca electron-store.
-- **Polaczenie internetowe** nie jest wymagane ani uzywane. Aplikacja nigdy nie laczy sie z zewnetrznymi serwerami.
+- **Minimalne uzycie internetu** – NoteIt laczy sie z GitHub wylacznie w celu sprawdzenia aktualizacji (mozna wylaczyc w Ustawieniach). Zadne dane osobowe nie sa nigdy wysylane.
 - **Brak sledzenia** – zadnej analityki, telemetrii ani reklam jakiegokolwiek rodzaju.
 - **Brak uslug zewnetrznych** – Twoje notatki nigdy nie opuszczaja Twojego komputera.
 - **Pelna kontrola** – mozesz usunac wszystkie dane w dowolnym momencie, usuwajac katalog danych aplikacji.

@@ -174,13 +174,13 @@ function Settings({ fontSize, onFontSizeChange, lang, onLangChange, autoStart, o
                   <h4>Data collection</h4>
                   <p>NoteIt does not collect, transmit, or share any personal data. All notes, settings, and files are stored exclusively on your local device.</p>
                   <h4>Network access</h4>
-                  <p>The application does not connect to the internet. No data is sent to external servers.</p>
+                  <p>NoteIt only connects to the internet to check for updates (GitHub API). This can be disabled in Settings. No personal data, notes, or usage information is ever transmitted.</p>
                   <h4>Third parties</h4>
                   <p>No third-party analytics, tracking, or advertising services are used.</p>
                   <h4>Data storage</h4>
                   <p>All data is stored locally using electron-store in your user profile directory. You have full control over your data and can delete it at any time.</p>
                   <h4>Update checking</h4>
-                  <p>NoteIt checks GitHub for new versions on startup (can be disabled in Settings). Only the version number is compared – no personal data is sent.</p>
+                  <p>If you downloaded NoteIt from GitHub, the app checks for new versions on startup (can be disabled in Settings). Only the version number is compared – no personal data is sent. If you installed NoteIt from the Microsoft Store, updates are managed automatically by the Store.</p>
                   <h4>Contact</h4>
                   <p>The Cloudest - Tomasz Iwanowski<br/>noteit@tomasziwanowski.com</p>
                 </>
@@ -190,13 +190,13 @@ function Settings({ fontSize, onFontSizeChange, lang, onLangChange, autoStart, o
                   <h4>Zbieranie danych</h4>
                   <p>NoteIt nie zbiera, nie przesyla ani nie udostepnia zadnych danych osobowych. Wszystkie notatki, ustawienia i pliki sa przechowywane wylacznie na Twoim urzadzeniu.</p>
                   <h4>Dostep do sieci</h4>
-                  <p>Aplikacja nie laczy sie z internetem. Zadne dane nie sa wysylane na zewnetrzne serwery.</p>
+                  <p>NoteIt laczy sie z internetem wylacznie w celu sprawdzenia dostepnosci aktualizacji (GitHub API). Mozna to wylaczyc w Ustawieniach. Zadne dane osobowe, notatki ani informacje o uzyciu nie sa nigdy przesylane.</p>
                   <h4>Podmioty trzecie</h4>
                   <p>Nie sa uzywane zadne uslugi analityczne, sledzace ani reklamowe.</p>
                   <h4>Przechowywanie danych</h4>
                   <p>Wszystkie dane sa przechowywane lokalnie za pomoca electron-store w katalogu profilu uzytkownika. Masz pelna kontrole nad swoimi danymi i mozesz je usunac w dowolnym momencie.</p>
                   <h4>Sprawdzanie aktualizacji</h4>
-                  <p>NoteIt sprawdza dostepnosc nowych wersji na GitHub przy uruchomieniu (mozna wylaczyc w Ustawieniach). Porownywany jest jedynie numer wersji – zadne dane osobowe nie sa wysylane.</p>
+                  <p>Jezeli NoteIt zostal pobrany z GitHub, aplikacja sprawdza dostepnosc nowych wersji przy uruchomieniu (mozna wylaczyc w Ustawieniach). Porownywany jest jedynie numer wersji – zadne dane osobowe nie sa wysylane. Jezeli NoteIt zostal zainstalowany z Microsoft Store, aktualizacje sa zarzadzane automatycznie przez Store.</p>
                   <h4>Kontakt</h4>
                   <p>The Cloudest - Tomasz Iwanowski<br/>noteit@tomasziwanowski.com</p>
                 </>

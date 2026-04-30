@@ -450,7 +450,7 @@ Access settings from the hamburger menu → "Settings".
 NoteIt is a fully local, offline application:
 
 - **All data is stored locally** on your device using electron-store.
-- **No internet connection** is required or used. The app never connects to external servers.
+- **Minimal internet use** – NoteIt only connects to GitHub to check for updates (can be disabled in Settings). No personal data is ever sent.
 - **No tracking** – no analytics, telemetry, or advertising of any kind.
 - **No third-party services** – your notes never leave your computer.
 - **Full control** – you can delete all data at any time by removing the app's data directory.
