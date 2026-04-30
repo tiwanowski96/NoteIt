@@ -61,10 +61,10 @@
       "signAndEditExecutable": false
     },
     "appx": {
-      "identityName": "TheCloudest.NoteIt",
-      "publisher": "CN=Tomasz Iwanowski",
-      "publisherDisplayName": "The Cloudest",
-      "applicationId": "NoteIt",
+      "identityName": "TheCloudestTomaszIwanowsk.NoteItNotes",
+      "publisher": "CN=998A0E2A-0A3B-4098-9200-C63CFABDDBA6",
+      "publisherDisplayName": "The Cloudest Tomasz Iwanowski",
+      "applicationId": "NoteItNotes",
       "languages": ["en-US", "pl-PL"]
     },
     "nsis": {
