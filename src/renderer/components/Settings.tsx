@@ -128,7 +128,7 @@ function Settings({ fontSize, onFontSizeChange, lang, onLangChange, autoStart, o
           <h4>{t('info')}</h4>
           <div className="settings-row">
             <span>{t('version')}</span>
-            <span className="settings-value">1.0.0</span>
+            <span className="settings-value">{__APP_VERSION__}</span>
           </div>
           <div className="settings-row">
             <span>{t('dataStored')}</span>

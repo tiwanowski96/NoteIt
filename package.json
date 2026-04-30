@@ -1,6 +1,6 @@
 {
   "name": "noteit",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Desktop notes app with system tray, rich text, and screenshot pasting",
   "repository": {
     "type": "git",
@@ -64,6 +64,7 @@
       "publisher": "CN=998A0E2A-0A3B-4098-9200-C63CFABDDBA6",
       "publisherDisplayName": "The Cloudest Tomasz Iwanowski",
       "applicationId": "NoteItNotes",
+      "artifactName": "NoteIt_Notes_Setup_${version}.${ext}",
       "languages": ["en-US", "pl-PL"]
     },
     "nsis": {
@@ -72,7 +73,8 @@
       "installerIcon": "assets/noteit.ico",
       "uninstallerIcon": "assets/noteit.ico",
       "installerHeaderIcon": "assets/noteit.ico",
-      "shortcutName": "NoteIt"
+      "shortcutName": "NoteIt",
+      "artifactName": "NoteIt_Notes_Setup_${version}.${ext}"
     },
     "files": [
       "dist/**/*",

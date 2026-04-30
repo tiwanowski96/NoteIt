@@ -8,6 +8,24 @@ interface Props {
 function Changelog({ onClose }: Props) {
   const { lang } = useLang();
 
+  const features102 = lang === 'en' ? [
+    'Templates now match selected language',
+    'Dynamic version display in Settings',
+    'Improved installer file naming',
+  ] : [
+    'Szablony notatek w wybranym jezyku',
+    'Dynamiczne wyswietlanie wersji w Ustawieniach',
+    'Poprawione nazwy plikow instalatora',
+  ];
+
+  const features101 = lang === 'en' ? [
+    'Fixed application icon in Start Menu and taskbar',
+    'Improved icon embedding in installer',
+  ] : [
+    'Naprawiono ikone aplikacji w menu Start i na pasku zadan',
+    'Poprawiono osadzanie ikony w instalatorze',
+  ];
+
   const features = lang === 'en' ? [
     'Rich text editor with formatting, colors, highlights',
     'Screenshots (Ctrl+Shift+S/C)',
@@ -58,6 +76,28 @@ function Changelog({ onClose }: Props) {
           </button>
         </div>
         <div className="changelog-content">
+          <div className="changelog-version">
+            <div className="changelog-version-header">
+              <span className="changelog-badge">v1.0.2</span>
+              <span className="changelog-date">2026</span>
+            </div>
+            <ul className="changelog-list">
+              {features102.map((feature, i) => (
+                <li key={i}>{feature}</li>
+              ))}
+            </ul>
+          </div>
+          <div className="changelog-version">
+            <div className="changelog-version-header">
+              <span className="changelog-badge">v1.0.1</span>
+              <span className="changelog-date">2026</span>
+            </div>
+            <ul className="changelog-list">
+              {features101.map((feature, i) => (
+                <li key={i}>{feature}</li>
+              ))}
+            </ul>
+          </div>
           <div className="changelog-version">
             <div className="changelog-version-header">
               <span className="changelog-badge">v1.0.0</span>

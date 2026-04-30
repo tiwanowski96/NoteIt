@@ -1,3 +1,25 @@
+# NoteIt Notes v1.0.2
+
+## Changes
+
+### Added
+- Note templates now match selected language (EN templates when English, PL when Polish)
+- Version number in Settings is now dynamic (read from package.json)
+- Changelog entry for v1.0.1
+
+### Improved
+- Installer and AppX file naming: `NoteIt_Notes_Setup_1.0.2.exe` / `.appx`
+
+---
+
+**Download:** `NoteIt_Notes_Setup_1.0.2.exe`
+
+**Requirements:** Windows 10 or later (x64)
+
+*© 2026 The Cloudest – Tomasz Iwanowski*
+
+---
+
 # NoteIt Notes v1.0.1
 
 ## Changes
