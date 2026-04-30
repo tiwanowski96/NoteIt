@@ -455,4 +455,19 @@ NoteIt jest w pelni lokalna aplikacja dzialajaca offline:
 - **Brak uslug zewnetrznych** – Twoje notatki nigdy nie opuszczaja Twojego komputera.
 - **Pelna kontrola** – mozesz usunac wszystkie dane w dowolnym momencie, usuwajac katalog danych aplikacji.
 
+### Lokalizacja danych
+
+NoteIt przechowuje wszystkie dane w nastepujacej lokalizacji na Windows:
+
+```
+%APPDATA%\noteit\
+```
+
+Zazwyczaj: `C:\Users\<TwojaNazwaUzytkownika>\AppData\Roaming\noteit\`
+
+Ten katalog zawiera:
+- `config.json` – wszystkie notatki, ustawienia i metadane
+
+Aby wykonac kopie zapasowa danych, skopiuj ten plik. Aby zresetowac aplikacje, usun go.
+
 Twoje notatki naleza tylko do Ciebie.

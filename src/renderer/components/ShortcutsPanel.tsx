@@ -49,7 +49,7 @@ function ShortcutsPanel({ onClose }: Props) {
           </div>
           <div className="shortcut-row">
             <span>{t('showShortcuts')}</span>
-            <span className="shortcut-key"><kbd>?</kbd></span>
+            <span className="shortcut-key"><kbd>Shift</kbd>+<kbd>/</kbd> <small>(?)</small></span>
           </div>
         </div>
 

@@ -116,10 +116,24 @@ function SlashCommands({ editor, position, onClose }: Props) {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex((i) => Math.min(i + 1, filtered.length - 1));
+        setSelectedIndex((i) => {
+          const next = Math.min(i + 1, filtered.length - 1);
+          setTimeout(() => {
+            const el = document.querySelector('.slash-command-item.selected');
+            el?.scrollIntoView({ block: 'nearest' });
+          }, 0);
+          return next;
+        });
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        setSelectedIndex((i) => Math.max(i - 1, 0));
+        setSelectedIndex((i) => {
+          const next = Math.max(i - 1, 0);
+          setTimeout(() => {
+            const el = document.querySelector('.slash-command-item.selected');
+            el?.scrollIntoView({ block: 'nearest' });
+          }, 0);
+          return next;
+        });
       } else if (e.key === 'Enter') {
         e.preventDefault();
         if (filtered[selectedIndex]) {

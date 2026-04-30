@@ -455,4 +455,19 @@ NoteIt is a fully local, offline application:
 - **No third-party services** – your notes never leave your computer.
 - **Full control** – you can delete all data at any time by removing the app's data directory.
 
+### Data Location
+
+NoteIt stores all data in the following location on Windows:
+
+```
+%APPDATA%\noteit\
+```
+
+Typically: `C:\Users\<YourUsername>\AppData\Roaming\noteit\`
+
+This directory contains:
+- `config.json` – all notes, settings, and metadata
+
+To back up your data, copy this file. To reset the app, delete it.
+
 Your notes are yours alone.

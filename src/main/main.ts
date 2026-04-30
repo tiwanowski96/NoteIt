@@ -1056,6 +1056,8 @@ ipcMain.handle('import-files', async () => {
           kanbanStatus: noteMeta.kanbanStatus,
           parentId: undefined, // Don't import hierarchy (IDs changed)
           childrenOrder: [],
+          locked: noteMeta.locked,
+          lockHash: noteMeta.lockHash,
         };
         notes.push(newNote);
       }
@@ -1145,6 +1147,8 @@ ipcMain.handle('export-zip', async (_event, noteIds: string[]) => {
     kanbanStatus: note.kanbanStatus,
     parentId: note.parentId,
     childrenOrder: note.childrenOrder,
+    locked: note.locked,
+    lockHash: note.lockHash,
   }));
   files.push({
     name: 'noteit-metadata.json',

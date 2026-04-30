@@ -4,6 +4,15 @@ import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import './styles.css';
 
+// Replace native title with data-tooltip to prevent double tooltips
+document.addEventListener('mouseover', (e) => {
+  const el = e.target as HTMLElement;
+  if (el.classList?.contains('btn-icon') && el.hasAttribute('title')) {
+    el.setAttribute('data-tooltip', el.getAttribute('title')!);
+    el.removeAttribute('title');
+  }
+}, true);
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ErrorBoundary>

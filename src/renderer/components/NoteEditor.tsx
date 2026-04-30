@@ -167,11 +167,8 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, alwa
           }
         }
       } else if (slashCommand) {
-        // Close if user typed something else or moved away
-        const textCheck = editor.state.doc.textBetween(Math.max(0, from - 20), from);
-        if (!textCheck.includes('/')) {
-          setSlashCommand(null);
-        }
+        // Close if user moved cursor (arrow keys) or typed something else
+        setSlashCommand(null);
       }
     },
   });
@@ -498,7 +495,7 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, alwa
           </select>
           <button className="btn-icon" onClick={() => handleExport('md')} title={t('exportMd')}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
           </button>
           <DateTimePicker

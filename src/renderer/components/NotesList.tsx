@@ -162,13 +162,19 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
           <button
             className={`btn-icon ${showTrash ? 'active-trash' : ''}`}
             onClick={() => { setShowTrash(!showTrash); setSelectedIds(new Set()); setSelectionMode(false); }}
-            title={t('trash')}
-            aria-label={t('trash')}
+            title={showTrash ? t('back') : t('trash')}
+            aria-label={showTrash ? t('back') : t('trash')}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-            </svg>
+            {showTrash ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
+            )}
           </button>
           <button
             className={`btn-icon ${pomodoroRunning ? 'pomodoro-active' : ''}`}
@@ -236,7 +242,7 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
           {!showTrash && (
             <>
               <button className="btn-icon" onClick={() => window.electronAPI.importFiles().then(() => {})} title={t('importFiles')} aria-label={t('importFiles')}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
               </button>
               <button className="btn btn-primary" onClick={onNew}>
                 <PlusIcon size={15} />
@@ -286,7 +292,7 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
                 </button>
                 <div className="hamburger-menu-separator" />
                 <button className="hamburger-menu-item" onClick={() => { window.electronAPI.importFiles(); setShowHamburger(false); }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                   {t('importFiles')}
                 </button>
                 <button className="hamburger-menu-item" onClick={() => { onToggleTheme(); setShowHamburger(false); }}>
