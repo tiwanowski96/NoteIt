@@ -54,10 +54,18 @@
     "productName": "NoteIt",
     "win": {
       "target": [
-        { "target": "nsis", "arch": ["x64", "ia32"] }
+        { "target": "appx", "arch": ["x64"] },
+        { "target": "nsis", "arch": ["x64"] }
       ],
       "icon": "assets/noteit.ico",
-      "sign": false
+      "signAndEditExecutable": false
+    },
+    "appx": {
+      "identityName": "TheCloudest.NoteIt",
+      "publisher": "CN=Tomasz Iwanowski",
+      "publisherDisplayName": "The Cloudest",
+      "applicationId": "NoteIt",
+      "languages": ["en-US", "pl-PL"]
     },
     "nsis": {
       "oneClick": true,
