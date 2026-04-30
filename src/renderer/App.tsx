@@ -13,6 +13,7 @@ import Stats from './components/Stats';
 import PomodoroTimer from './components/PomodoroTimer';
 import WindowControls from './components/WindowControls';
 import { UnlockModal } from './components/LockNote';
+import SkeletonLoader from './components/SkeletonLoader';
 
 function App() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -30,10 +31,12 @@ function App() {
   const [alwaysOnTop, setAlwaysOnTop] = useState(false);
   const [lang, setLang] = useState<Lang>('en');
   const [autoStart, setAutoStart] = useState(true);
+  const [showOnStart, setShowOnStart] = useState(true);
   const [showPomodoro, setShowPomodoro] = useState(false);
   const [showPomodoroMini, setShowPomodoroMini] = useState(false);
   const [showUnlock, setShowUnlock] = useState<Note | null>(null);
   const [unlockError, setUnlockError] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Pomodoro global state (persists when modal is closed)
   const [pomodoroRunning, setPomodoroRunning] = useState(false);
@@ -120,6 +123,7 @@ function App() {
   const loadNotes = useCallback(async () => {
     const loaded = await window.electronAPI.getNotes();
     setNotes(loaded);
+    setLoading(false);
     return loaded;
   }, []);
 
@@ -142,6 +146,8 @@ function App() {
     if (savedLang) setLang(savedLang);
     // Load autostart setting
     window.electronAPI.getAutoStart().then((val) => setAutoStart(val));
+    const savedShowOnStart = localStorage.getItem('noteit-show-on-start');
+    if (savedShowOnStart === 'true') setShowOnStart(true);
     // Show onboarding on first launch
     if (!windowMode && !localStorage.getItem('noteit-onboarded')) {
       setShowOnboarding(true);
@@ -261,6 +267,12 @@ function App() {
   const handleAutoStartChange = (value: boolean) => {
     setAutoStart(value);
     window.electronAPI.setAutoStart(value);
+  };
+
+  const handleShowOnStartChange = (value: boolean) => {
+    setShowOnStart(value);
+    localStorage.setItem('noteit-show-on-start', String(value));
+    window.electronAPI.setShowOnStart(value);
   };
 
   const handleToggleAlwaysOnTop = () => {
@@ -431,6 +443,9 @@ function App() {
     <div className="app">
       <WindowControls />
       {view === 'list' ? (
+        loading ? (
+          <SkeletonLoader />
+        ) : (
         <NotesList
           notes={notes}
           onSelect={handleSelectNote}
@@ -452,6 +467,7 @@ function App() {
           pomodoroRunning={pomodoroRunning}
           onShowOnboarding={() => setShowOnboarding(true)}
         />
+        )
       ) : (
         <NoteEditor
           note={selectedNote!}
@@ -487,6 +503,10 @@ function App() {
           onLangChange={handleLangChange}
           theme={theme}
           onThemeChange={toggleTheme}
+          autoStart={autoStart}
+          onAutoStartChange={handleAutoStartChange}
+          showOnStart={showOnStart}
+          onShowOnStartChange={handleShowOnStartChange}
         />
       )}
       {showCommandPalette && (
@@ -504,6 +524,8 @@ function App() {
           onLangChange={handleLangChange}
           autoStart={autoStart}
           onAutoStartChange={handleAutoStartChange}
+          showOnStart={showOnStart}
+          onShowOnStartChange={handleShowOnStartChange}
           onClose={() => setShowSettings(false)}
         />
       )}

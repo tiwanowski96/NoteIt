@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Lang } from '../i18n';
 import { useLang } from '../LangContext';
+import Changelog from './Changelog';
 
 interface Props {
   fontSize: number;
@@ -9,14 +10,17 @@ interface Props {
   onLangChange: (lang: Lang) => void;
   autoStart: boolean;
   onAutoStartChange: (value: boolean) => void;
+  showOnStart: boolean;
+  onShowOnStartChange: (value: boolean) => void;
   onClose: () => void;
 }
 
-function Settings({ fontSize, onFontSizeChange, lang, onLangChange, autoStart, onAutoStartChange, onClose }: Props) {
+function Settings({ fontSize, onFontSizeChange, lang, onLangChange, autoStart, onAutoStartChange, showOnStart, onShowOnStartChange, onClose }: Props) {
   const { t } = useLang();
   const appOffset = fontSize - 15;
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showLicenses, setShowLicenses] = useState(false);
+  const [showChangelog, setShowChangelog] = useState(false);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -71,6 +75,27 @@ function Settings({ fontSize, onFontSizeChange, lang, onLangChange, autoStart, o
               <span className="toggle-knob" />
             </button>
           </div>
+
+          <div className="settings-row">
+            <div className="settings-row-label">
+              <span>{lang === 'en' ? 'Show window on start' : 'Pokaz okno przy starcie'}</span>
+              <span className="settings-row-hint">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <span className="settings-tooltip">
+                  {lang === 'en' ? 'When enabled, the main notes window will open automatically after NoteIt starts. When disabled, NoteIt starts hidden in the system tray.' : 'Gdy wlaczone, glowne okno notatek otworzy sie automatycznie po uruchomieniu NoteIt. Gdy wylaczone, NoteIt startuje ukryty w zasobniku systemowym.'}
+                </span>
+              </span>
+            </div>
+            <button
+              className={`toggle-switch ${showOnStart ? 'active' : ''}`}
+              onClick={() => onShowOnStartChange(!showOnStart)}
+              aria-label="Show on start"
+            >
+              <span className="toggle-knob" />
+            </button>
+          </div>
         </div>
 
         <div className="settings-section">
@@ -87,11 +112,17 @@ function Settings({ fontSize, onFontSizeChange, lang, onLangChange, autoStart, o
             <span>© 2026 The Cloudest - Tomasz Iwanowski</span>
           </div>
           <div className="settings-links">
+            <button className="settings-link-btn" onClick={() => setShowChangelog(true)}>
+              {lang === 'en' ? "What's new" : 'Co nowego'}
+            </button>
             <button className="settings-link-btn" onClick={() => setShowPrivacy(true)}>
               {lang === 'en' ? 'Privacy Policy' : 'Polityka prywatnosci'}
             </button>
             <button className="settings-link-btn" onClick={() => setShowLicenses(true)}>
               {lang === 'en' ? 'Licenses' : 'Licencje'}
+            </button>
+            <button className="settings-link-btn" onClick={() => window.electronAPI.openExternal('https://github.com/tiwanowski96/NoteIt/blob/main/USER_GUIDE.md')}>
+              {lang === 'en' ? 'User Guide' : 'Poradnik uzytkownika'}
             </button>
           </div>
         </div>
@@ -176,6 +207,10 @@ function Settings({ fontSize, onFontSizeChange, lang, onLangChange, autoStart, o
             </div>
           </div>
         </div>
+      )}
+
+      {showChangelog && (
+        <Changelog onClose={() => setShowChangelog(false)} />
       )}
     </div>
   );

@@ -7,9 +7,13 @@ interface Props {
   onLangChange: (lang: 'en' | 'pl') => void;
   theme: 'light' | 'dark';
   onThemeChange: () => void;
+  autoStart: boolean;
+  onAutoStartChange: (value: boolean) => void;
+  showOnStart: boolean;
+  onShowOnStartChange: (value: boolean) => void;
 }
 
-function Onboarding({ onComplete, lang, onLangChange, theme, onThemeChange }: Props) {
+function Onboarding({ onComplete, lang, onLangChange, theme, onThemeChange, autoStart, onAutoStartChange, showOnStart, onShowOnStartChange }: Props) {
   const { t } = useLang();
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -40,6 +44,57 @@ function Onboarding({ onComplete, lang, onLangChange, theme, onThemeChange }: Pr
               <button className={`lang-btn ${theme === 'light' ? 'active' : ''}`} onClick={theme === 'dark' ? onThemeChange : undefined}>Light</button>
               <button className={`lang-btn ${theme === 'dark' ? 'active' : ''}`} onClick={theme === 'light' ? onThemeChange : undefined}>Dark</button>
             </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: lang === 'en' ? 'System' : 'System',
+      description: lang === 'en' ? 'Configure how NoteIt behaves on your system.' : 'Skonfiguruj jak NoteIt zachowuje sie w systemie.',
+      icon: (
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68 1.65 1.65 0 0 0 9 3V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      ),
+      custom: (
+        <div className="onboarding-preferences">
+          <div className="onboarding-pref-row">
+            <div className="settings-row-label">
+              <span>{lang === 'en' ? 'Start with Windows' : 'Uruchom z Windows'}</span>
+              <span className="settings-row-hint">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <span className="settings-tooltip">
+                  {lang === 'en' ? 'NoteIt will automatically start when you log in to Windows and run in the system tray' : 'NoteIt uruchomi sie automatycznie po zalogowaniu do Windows i bedzie dzialac w zasobniku systemowym'}
+                </span>
+              </span>
+            </div>
+            <button
+              className={`toggle-switch ${autoStart ? 'active' : ''}`}
+              onClick={() => onAutoStartChange(!autoStart)}
+            >
+              <span className="toggle-knob" />
+            </button>
+          </div>
+          <div className="onboarding-pref-row">
+            <div className="settings-row-label">
+              <span>{lang === 'en' ? 'Show window on start' : 'Pokaz okno przy starcie'}</span>
+              <span className="settings-row-hint">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <span className="settings-tooltip">
+                  {lang === 'en' ? 'When enabled, the main notes window will open automatically after NoteIt starts' : 'Gdy wlaczone, glowne okno notatek otworzy sie automatycznie po uruchomieniu NoteIt'}
+                </span>
+              </span>
+            </div>
+            <button
+              className={`toggle-switch ${showOnStart ? 'active' : ''}`}
+              onClick={() => onShowOnStartChange(!showOnStart)}
+            >
+              <span className="toggle-knob" />
+            </button>
           </div>
         </div>
       ),
@@ -93,8 +148,12 @@ function Onboarding({ onComplete, lang, onLangChange, theme, onThemeChange }: Pr
   const handleNext = () => {
     if (currentSlide < slides.length - 1) {
       setCurrentSlide(currentSlide + 1);
-    } else {
-      onComplete();
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentSlide > 0) {
+      setCurrentSlide(currentSlide - 1);
     }
   };
 
@@ -103,6 +162,8 @@ function Onboarding({ onComplete, lang, onLangChange, theme, onThemeChange }: Pr
   };
 
   const slide = slides[currentSlide];
+  const isFirst = currentSlide === 0;
+  const isLast = currentSlide === slides.length - 1;
 
   return (
     <div className="onboarding-overlay">
@@ -119,12 +180,29 @@ function Onboarding({ onComplete, lang, onLangChange, theme, onThemeChange }: Pr
         </div>
 
         <div className="onboarding-actions">
-          <button className="btn btn-secondary" onClick={handleSkip}>
-            {t('skip')}
-          </button>
-          <button className="btn btn-primary" onClick={handleNext}>
-            {currentSlide < slides.length - 1 ? t('next') : t('start')}
-          </button>
+          {isFirst ? (
+            <button className="btn btn-secondary" onClick={handleSkip}>
+              {t('skip')}
+            </button>
+          ) : (
+            <div className="onboarding-actions-left">
+              <button className="btn btn-secondary" onClick={handlePrev}>
+                {t('back')}
+              </button>
+              <button className="btn btn-secondary" onClick={handleSkip}>
+                {t('skip')}
+              </button>
+            </div>
+          )}
+          {isLast ? (
+            <button className="btn btn-primary" onClick={onComplete}>
+              {t('start')}
+            </button>
+          ) : (
+            <button className="btn btn-primary" onClick={handleNext}>
+              {t('next')}
+            </button>
+          )}
         </div>
       </div>
     </div>

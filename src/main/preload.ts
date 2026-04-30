@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   lockNote: (noteId: string, pin: string) => ipcRenderer.invoke('lock-note', noteId, pin),
   setAutoStart: (value: boolean) => ipcRenderer.invoke('set-auto-start', value),
   getAutoStart: () => ipcRenderer.invoke('get-auto-start'),
+  setShowOnStart: (value: boolean) => ipcRenderer.invoke('set-show-on-start', value),
   unlockNote: (noteId: string, pin: string) => ipcRenderer.invoke('unlock-note', noteId, pin),
   removeLock: (noteId: string) => ipcRenderer.invoke('remove-lock', noteId),
   setAlwaysOnTop: (value: boolean) => ipcRenderer.invoke('set-always-on-top', value),
@@ -60,4 +61,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('paste-screenshot', handler);
     return () => ipcRenderer.removeListener('paste-screenshot', handler);
   },
+  openExternal: (url: string) => ipcRenderer.invoke('open-external', url),
 });

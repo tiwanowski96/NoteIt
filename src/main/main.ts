@@ -773,6 +773,10 @@ ipcMain.handle('get-auto-start', () => {
   return settings.openAtLogin;
 });
 
+ipcMain.handle('set-show-on-start', (_event, value: boolean) => {
+  store.set('showOnStart' as any, value);
+});
+
 ipcMain.handle('lock-note', (_event, noteId: string, pin: string) => {
   const notes = store.get('notes');
   const note = notes.find((n: Note) => n.id === noteId);
@@ -810,6 +814,11 @@ ipcMain.handle('set-always-on-top', (_event, value: boolean) => {
   if (senderWindow && !senderWindow.isDestroyed()) {
     senderWindow.setAlwaysOnTop(value);
   }
+});
+
+ipcMain.handle('open-external', (_event, url: string) => {
+  const { shell } = require('electron');
+  shell.openExternal(url);
 });
 
 let pomodoroMiniWindow: BrowserWindow | null = null;
@@ -997,7 +1006,6 @@ ipcMain.handle('import-files', async () => {
     const zipBuffer = fs.readFileSync(zipPath);
     // Parse ZIP central directory
     let offset = zipBuffer.length - 22;
-    // Find end of central directory
     while (offset >= 0 && zipBuffer.readUInt32LE(offset) !== 0x06054b50) {
       offset--;
     }
@@ -1007,10 +1015,12 @@ ipcMain.handle('import-files', async () => {
     const entryCount = zipBuffer.readUInt16LE(offset + 10);
     let pos = centralDirOffset;
 
+    // First pass: check if noteit-metadata.json exists
+    const extractedFiles: { name: string; data: Buffer }[] = [];
+
     for (let i = 0; i < entryCount; i++) {
       if (zipBuffer.readUInt32LE(pos) !== 0x02014b50) break;
 
-      const compressedSize = zipBuffer.readUInt32LE(pos + 20);
       const uncompressedSize = zipBuffer.readUInt32LE(pos + 24);
       const fileNameLen = zipBuffer.readUInt16LE(pos + 28);
       const extraLen = zipBuffer.readUInt16LE(pos + 30);
@@ -1018,27 +1028,53 @@ ipcMain.handle('import-files', async () => {
       const localHeaderOffset = zipBuffer.readUInt32LE(pos + 42);
       const fileName = zipBuffer.slice(pos + 46, pos + 46 + fileNameLen).toString('utf-8');
 
-      // Read from local header
       const localNameLen = zipBuffer.readUInt16LE(localHeaderOffset + 26);
       const localExtraLen = zipBuffer.readUInt16LE(localHeaderOffset + 28);
       const dataOffset = localHeaderOffset + 30 + localNameLen + localExtraLen;
       const fileData = zipBuffer.slice(dataOffset, dataOffset + uncompressedSize);
 
-      // Only import .md and .txt files
-      if (fileName.endsWith('.md') || fileName.endsWith('.txt') || fileName.endsWith('.markdown')) {
-        const content = fileData.toString('utf-8');
-        const baseName = path.basename(fileName, path.extname(fileName));
+      extractedFiles.push({ name: fileName, data: fileData });
+      pos += 46 + fileNameLen + extraLen + commentLen;
+    }
+
+    // Check for metadata file (NoteIt export format)
+    const metadataFile = extractedFiles.find((f) => f.name === 'noteit-metadata.json');
+    if (metadataFile) {
+      // Import with full metadata
+      const metadata = JSON.parse(metadataFile.data.toString('utf-8'));
+      for (const noteMeta of metadata) {
         const newNote: Note = {
-          id: crypto.randomUUID(),
-          title: baseName,
-          content: mdToHtml(content),
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
+          id: crypto.randomUUID(), // New ID to avoid conflicts
+          title: noteMeta.title || 'Imported',
+          content: noteMeta.content || '',
+          createdAt: noteMeta.createdAt || new Date().toISOString(),
+          updatedAt: noteMeta.updatedAt || new Date().toISOString(),
+          pinned: noteMeta.pinned,
+          tags: noteMeta.tags,
+          color: noteMeta.color,
+          reminder: noteMeta.reminder,
+          kanbanStatus: noteMeta.kanbanStatus,
+          parentId: undefined, // Don't import hierarchy (IDs changed)
+          childrenOrder: [],
         };
         notes.push(newNote);
       }
-
-      pos += 46 + fileNameLen + extraLen + commentLen;
+    } else {
+      // Fallback: import .md/.txt files as plain notes
+      for (const file of extractedFiles) {
+        if (file.name.endsWith('.md') || file.name.endsWith('.txt') || file.name.endsWith('.markdown')) {
+          const content = file.data.toString('utf-8');
+          const baseName = path.basename(file.name, path.extname(file.name));
+          const newNote: Note = {
+            id: crypto.randomUUID(),
+            title: baseName,
+            content: mdToHtml(content),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          notes.push(newNote);
+        }
+      }
     }
   }
 
@@ -1092,18 +1128,42 @@ ipcMain.handle('export-zip', async (_event, noteIds: string[]) => {
 
   if (result.canceled || !result.filePath) return;
 
-  // Simple ZIP creation using Node.js zlib
-  const archiver = await createSimpleZip(selectedNotes);
+  // Include metadata.json with full note data + individual .md files
+  const files: { name: string; content: Buffer }[] = [];
+
+  // Add metadata.json with all note data (for re-import)
+  const metadata = selectedNotes.map((note) => ({
+    id: note.id,
+    title: note.title,
+    content: note.content,
+    createdAt: note.createdAt,
+    updatedAt: note.updatedAt,
+    pinned: note.pinned,
+    tags: note.tags,
+    color: note.color,
+    reminder: note.reminder,
+    kanbanStatus: note.kanbanStatus,
+    parentId: note.parentId,
+    childrenOrder: note.childrenOrder,
+  }));
+  files.push({
+    name: 'noteit-metadata.json',
+    content: Buffer.from(JSON.stringify(metadata, null, 2), 'utf-8'),
+  });
+
+  // Add readable .md files
+  for (const note of selectedNotes) {
+    files.push({
+      name: `${note.title.replace(/[<>:"/\\|?*]/g, '_')}.md`,
+      content: Buffer.from(`# ${note.title}\n\n${stripHtml(note.content)}`, 'utf-8'),
+    });
+  }
+
+  const archiver = createSimpleZipFromFiles(files);
   fs.writeFileSync(result.filePath, archiver);
 });
 
-function createSimpleZip(notes: Note[]): Buffer {
-  // Use a simple approach: create individual .md files and pack them
-  // Since we don't have archiver package, we'll use a basic ZIP structure
-  const files: { name: string; content: Buffer }[] = notes.map((note) => ({
-    name: `${note.title.replace(/[<>:"/\\|?*]/g, '_')}.md`,
-    content: Buffer.from(`# ${note.title}\n\n${stripHtml(note.content)}`, 'utf-8'),
-  }));
+function createSimpleZipFromFiles(files: { name: string; content: Buffer }[]): Buffer {
 
   // Minimal ZIP file format
   const localHeaders: Buffer[] = [];
@@ -1221,16 +1281,81 @@ function checkReminders(): void {
 
 // App lifecycle
 app.on('ready', () => {
-  createTray();
-  registerShortcuts();
-  cleanupTrash();
-  checkReminders();
-  setInterval(checkReminders, 60000); // Check every minute
+  // Show splash screen
+  const { screen: electronScreen } = require('electron');
+  const display = electronScreen.getPrimaryDisplay();
+  const { width, height } = display.workAreaSize;
 
-  app.setLoginItemSettings({
-    openAtLogin: true,
-    path: app.getPath('exe'),
+  const splashWindow = new BrowserWindow({
+    width: 400,
+    height: 250,
+    x: Math.round((width - 400) / 2),
+    y: Math.round((height - 250) / 2),
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    show: false,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
   });
+
+  // Load logo as base64 for splash
+  const logoPath = path.join(__dirname, '../../assets', 'noteit_sign.png');
+  let logoBase64 = '';
+  try {
+    logoBase64 = fs.readFileSync(logoPath).toString('base64');
+  } catch {}
+
+  const splashHtml = `<!DOCTYPE html>
+<html><head><style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:transparent}
+body{display:flex;align-items:center;justify-content:center;font-family:'Segoe UI','Inter',sans-serif}
+.splash{width:100%;height:100%;border-radius:16px;background:#ffffff;border:3px solid transparent;background-clip:padding-box;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;box-shadow:0 20px 60px rgba(99,102,241,0.2)}
+.splash::before{content:'';position:absolute;inset:-3px;border-radius:18px;background:linear-gradient(135deg,#6366f1,#8b5cf6,#6366f1);z-index:-1}
+.logo img{height:52px;width:auto}
+.loader{display:flex;gap:6px;margin-top:8px}
+.loader span{width:8px;height:8px;border-radius:50%;background:#6366f1;animation:pulse 1.2s ease-in-out infinite}
+.loader span:nth-child(2){animation-delay:0.2s}
+.loader span:nth-child(3){animation-delay:0.4s}
+@keyframes pulse{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}
+</style></head><body>
+<div class="splash">
+  <div class="logo"><img src="data:image/png;base64,${logoBase64}" alt="NoteIt"/></div>
+  <div class="loader"><span></span><span></span><span></span></div>
+</div>
+</body></html>`;
+
+  splashWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(splashHtml)}`);
+  splashWindow.once('ready-to-show', () => {
+    splashWindow.show();
+  });
+
+  setTimeout(() => {
+    if (!splashWindow.isDestroyed()) {
+      splashWindow.close();
+    }
+    createTray();
+    registerShortcuts();
+    cleanupTrash();
+    checkReminders();
+    setInterval(checkReminders, 60000);
+
+    // Show main window on start if enabled (default: true)
+    const showOnStart = store.get('showOnStart' as any);
+    if (showOnStart === undefined || showOnStart === true) {
+      createMainWindow();
+    }
+
+    app.setLoginItemSettings({
+      openAtLogin: true,
+      path: app.getPath('exe'),
+    });
+  }, 3000);
 });
 
 app.on('window-all-closed', () => {

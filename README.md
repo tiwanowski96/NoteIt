@@ -1,52 +1,108 @@
 # NoteIt 📝
 
-Desktopowa aplikacja do notatek dla Windows z system tray, rich text edytorem i łatwym wklejaniem screenshotów.
+A fast, beautiful, and fully local desktop notes app for Windows. Rich text editing, screenshots, Pomodoro timer, encryption, and more – all without an internet connection.
 
-## Funkcje
+![NoteIt Screenshot](assets/noteit_sign.png)
 
-- 🖥️ **System Tray** – aplikacja działa w tle jako ikona przy zegarku
-- 🚀 **Autostart** – uruchamia się automatycznie z Windows
-- ⌨️ **Ctrl+Q** – otwiera okno ze wszystkimi notatkami
-- ⌨️ **Ctrl+Shift+Q** – otwiera ostatnią notatkę
-- 🎨 **Rich Text** – formatowanie tekstu, kolory, zakreślacz
-- 📸 **Screenshoty** – wklej screenshot przez Ctrl+V
-- 💾 **Lokalne przechowywanie** – notatki zapisywane na dysku
+## Features
 
-## Instalacja i uruchomienie
+- 🖥️ **System Tray** – runs in the background, always accessible
+- 🚀 **Autostart** – launches automatically with Windows
+- 📝 **Rich Text Editor** – bold, italic, headings, lists, checklists, tables, code blocks, quotes, horizontal rules
+- 🎨 **Colors & Highlights** – text colors, highlight markers, note card colors
+- 📸 **Screenshots** – global shortcuts to capture screen areas to notes or clipboard
+- 🔒 **Encryption** – PIN-lock individual notes
+- 🏷️ **Tags** – up to 3 tags per note for filtering
+- 📋 **Kanban Board** – drag & drop notes between To do / In progress / Done
+- ⏱️ **Pomodoro Timer** – work/break sessions with mini always-on-top mode
+- 🔔 **Reminders** – set date/time reminders with desktop notifications
+- 📌 **Sticky Notes** – pin notes to the desktop as floating widgets
+- 🗂️ **Subnotes** – hierarchical note structure with breadcrumbs
+- 🔗 **Note Links** – link between notes for quick navigation
+- 📦 **Import / Export** – import `.md`/`.txt`/`.zip`, export `.zip` with metadata or single `.md`
+- 🔍 **Search** – main search bar, Command Palette (Ctrl+P), Find & Replace (Ctrl+F)
+- 📄 **Templates** – Empty, Meeting, Task list, Journal, Project, Brainstorm
+- 🗑️ **Trash** – soft delete with 30-day retention, restore, permanent delete
+- 🌐 **Multilingual** – English and Polish
+- 🔐 **Privacy** – 100% local, no internet, no tracking
+
+## Installation & Development
 
 ```bash
-# Zainstaluj zależności
+# Install dependencies
 npm install
 
-# Uruchom w trybie deweloperskim
+# Run in development mode
 npm run dev
 
-# Zbuduj aplikację (.exe)
+# Build the application (.exe)
 npm run build
 ```
 
-## Tryb deweloperski
+### Development Mode
 
-1. `npm install` – instalacja zależności
-2. W jednym terminalu: `npx vite --root src/renderer` – uruchom frontend
-3. W drugim terminalu: `npm run dev:main` – uruchom Electron
+The `npm run dev` command starts both the Vite dev server (renderer) and the Electron main process concurrently.
 
-## Skróty klawiszowe
+## Tech Stack
 
-| Skrót | Akcja |
-|-------|-------|
-| Ctrl+Q | Otwórz wszystkie notatki |
-| Ctrl+Shift+Q | Otwórz ostatnią notatkę |
-| Ctrl+V | Wklej screenshot/obraz |
-| Ctrl+B | Pogrubienie |
-| Ctrl+I | Kursywa |
-| Ctrl+Z | Cofnij |
+| Technology | Purpose |
+|-----------|---------|
+| Electron 28 | Desktop application framework |
+| React 18 | UI library |
+| TypeScript | Type-safe development |
+| Tiptap | Rich text editor (ProseMirror-based) |
+| Vite | Frontend bundler & dev server |
+| electron-store | Local data persistence |
 
-## Technologie
+## Keyboard Shortcuts
 
-- Electron 28
-- React 18
-- Tiptap (rich text editor)
-- Vite (bundler)
-- TypeScript
-- electron-store (lokalne dane)
+### Global (from any application)
+
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+Q | Open all notes |
+| Ctrl+Shift+Q | Open last edited note |
+| Ctrl+Shift+S | Screenshot → note |
+| Ctrl+Shift+C | Screenshot → clipboard |
+| Ctrl+Shift+V | Clipboard text → new note |
+
+### Notes List
+
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+N | New note |
+| Ctrl+P | Command palette |
+| Ctrl+K | Keyboard shortcuts |
+
+### Editor
+
+| Shortcut | Action |
+|----------|--------|
+| Ctrl+B | Bold |
+| Ctrl+I | Italic |
+| Ctrl+Shift+X | Strikethrough |
+| Ctrl+E | Inline code |
+| Ctrl+Alt+1/2/3 | Heading 1/2/3 |
+| Ctrl+Shift+8 | Bullet list |
+| Ctrl+Shift+7 | Ordered list |
+| Ctrl+Shift+9 | Checklist |
+| Ctrl+Shift+B | Blockquote |
+| Ctrl+Z | Undo |
+| Ctrl+Shift+Z | Redo |
+| Ctrl+F | Find & Replace |
+| / | Slash commands |
+| Ctrl+V | Paste image |
+
+## Documentation
+
+For a complete user guide, see [USER_GUIDE.md](USER_GUIDE.md).
+
+## License
+
+MIT License © 2026 [The Cloudest - Tomasz Iwanowski](https://github.com/tiwanowski96)
+
+See [LICENSE](LICENSE) for details.
+
+## AI-Assisted Development
+
+This application and its documentation were built with the assistance of AI (Kiro / Claude).

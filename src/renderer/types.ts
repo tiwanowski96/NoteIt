@@ -35,6 +35,7 @@ export interface ElectronAPI {
   lockNote: (noteId: string, pin: string) => Promise<boolean>;
   setAutoStart: (value: boolean) => Promise<void>;
   getAutoStart: () => Promise<boolean>;
+  setShowOnStart: (value: boolean) => Promise<void>;
   unlockNote: (noteId: string, pin: string) => Promise<boolean>;
   removeLock: (noteId: string) => Promise<void>;
   setAlwaysOnTop: (value: boolean) => Promise<void>;
@@ -56,6 +57,7 @@ export interface ElectronAPI {
   onThemeChanged: (callback: (theme: string) => void) => () => void;
   onNotesUpdated: (callback: () => void) => () => void;
   onPasteScreenshot: (callback: (dataUrl: string) => void) => () => void;
+  openExternal: (url: string) => Promise<void>;
 }
 
 declare global {
