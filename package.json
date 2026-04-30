@@ -53,8 +53,11 @@
     "appId": "com.noteit.app",
     "productName": "NoteIt",
     "win": {
-      "target": "nsis",
-      "icon": "assets/noteit.ico"
+      "target": [
+        { "target": "nsis", "arch": ["x64", "ia32"] }
+      ],
+      "icon": "assets/noteit.ico",
+      "sign": false
     },
     "nsis": {
       "oneClick": true,
