@@ -105,4 +105,4 @@ See [LICENSE](LICENSE) for details.
 
 ## AI-Assisted Development
 
-This application and its documentation were built with the assistance of AI (Kiro / Claude).
+This application and its documentation were built with the assistance of AI.
