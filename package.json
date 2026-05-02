@@ -25,6 +25,7 @@
     "concurrently": "^8.2.2",
     "electron": "^28.1.3",
     "electron-builder": "^24.9.1",
+    "sharp": "^0.34.5",
     "typescript": "^5.3.3",
     "vite": "^5.0.12",
     "wait-on": "^9.0.5"
@@ -54,8 +55,18 @@
     "productName": "NoteIt Notes",
     "win": {
       "target": [
-        { "target": "appx", "arch": ["x64"] },
-        { "target": "nsis", "arch": ["x64"] }
+        {
+          "target": "appx",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "assets/noteit.ico"
     },
@@ -65,7 +76,12 @@
       "publisherDisplayName": "The Cloudest Tomasz Iwanowski",
       "applicationId": "NoteItNotes",
       "artifactName": "NoteIt_Notes_Setup_${version}.${ext}",
-      "languages": ["en-US", "pl-PL"]
+      "languages": [
+        "en-US",
+        "pl-PL"
+      ],
+      "setBuildNumber": false,
+      "assets": "build/appx"
     },
     "nsis": {
       "oneClick": true,
