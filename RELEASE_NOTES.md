@@ -1,18 +1,21 @@
-# NoteIt Notes v1.0.2
+# NoteIt Notes v1.0.3
 
 ## Changes
+
+### Fixed
+- Custom tile icons for Microsoft Store (fixes certification rejection for default tiles)
 
 ### Added
 - Note templates now match selected language (EN templates when English, PL when Polish)
 - Version number in Settings is now dynamic (read from package.json)
-- Changelog entry for v1.0.1
+- Changelog entries for v1.0.1, v1.0.2, and v1.0.3
 
 ### Improved
-- Installer and AppX file naming: `NoteIt_Notes_Setup_1.0.2.exe` / `.appx`
+- Installer and AppX file naming: `NoteIt_Notes_Setup_1.0.3.exe` / `.appx`
 
 ---
 
-**Download:** `NoteIt_Notes_Setup_1.0.2.exe`
+**Download:** `NoteIt_Notes_Setup_1.0.3.exe`
 
 **Requirements:** Windows 10 or later (x64)
 

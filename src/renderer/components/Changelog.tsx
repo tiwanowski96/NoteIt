@@ -11,10 +11,12 @@ function Changelog({ onClose }: Props) {
   const features102 = lang === 'en' ? [
     'Templates now match selected language',
     'Dynamic version display in Settings',
+    'Custom tile icons for Microsoft Store',
     'Improved installer file naming',
   ] : [
     'Szablony notatek w wybranym jezyku',
     'Dynamiczne wyswietlanie wersji w Ustawieniach',
+    'Wlasne ikony kafelkow dla Microsoft Store',
     'Poprawione nazwy plikow instalatora',
   ];
 
@@ -78,7 +80,7 @@ function Changelog({ onClose }: Props) {
         <div className="changelog-content">
           <div className="changelog-version">
             <div className="changelog-version-header">
-              <span className="changelog-badge">v1.0.2</span>
+              <span className="changelog-badge">v1.0.3</span>
               <span className="changelog-date">2026</span>
             </div>
             <ul className="changelog-list">
