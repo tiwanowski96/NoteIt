@@ -1,6 +1,6 @@
 {
   "name": "noteit",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Desktop notes app with system tray, rich text, and screenshot pasting",
   "repository": {
     "type": "git",
@@ -84,13 +84,27 @@
     },
     "nsis": {
       "oneClick": true,
-      "perMachine": false,
+      "perMachine": true,
       "installerIcon": "assets/noteit.ico",
       "uninstallerIcon": "assets/noteit.ico",
       "installerHeaderIcon": "assets/noteit.ico",
       "shortcutName": "NoteIt",
       "artifactName": "NoteIt_Notes_Setup_${version}.${ext}"
     },
+    "fileAssociations": [
+      {
+        "ext": "txt",
+        "name": "Text File",
+        "role": "Editor",
+        "icon": "assets/noteit.ico"
+      },
+      {
+        "ext": "md",
+        "name": "Markdown File",
+        "role": "Editor",
+        "icon": "assets/noteit.ico"
+      }
+    ],
     "files": [
       "dist/**/*",
       "assets/**/*"

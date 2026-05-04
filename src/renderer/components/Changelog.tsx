@@ -8,6 +8,18 @@ interface Props {
 function Changelog({ onClose }: Props) {
   const { lang } = useLang();
 
+  const features104 = lang === 'en' ? [
+    'Open .txt and .md files directly in NoteIt',
+    'Global search now searches inside note content',
+    'Search results show content preview with highlights',
+    'Install to Program Files',
+  ] : [
+    'Otwieranie plikow .txt i .md bezposrednio w NoteIt',
+    'Wyszukiwanie globalne przeszukuje tresc notatek',
+    'Wyniki wyszukiwania z podgladem tresci i podswietleniem',
+    'Instalacja do Program Files',
+  ];
+
   const features102 = lang === 'en' ? [
     'Templates now match selected language',
     'Dynamic version display in Settings',
@@ -78,6 +90,17 @@ function Changelog({ onClose }: Props) {
           </button>
         </div>
         <div className="changelog-content">
+          <div className="changelog-version">
+            <div className="changelog-version-header">
+              <span className="changelog-badge">v1.0.4</span>
+              <span className="changelog-date">2026</span>
+            </div>
+            <ul className="changelog-list">
+              {features104.map((feature, i) => (
+                <li key={i}>{feature}</li>
+              ))}
+            </ul>
+          </div>
           <div className="changelog-version">
             <div className="changelog-version-header">
               <span className="changelog-badge">v1.0.3</span>

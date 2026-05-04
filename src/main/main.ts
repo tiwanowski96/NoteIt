@@ -1341,6 +1341,67 @@ ipcMain.handle('get-check-updates', () => {
   return val === undefined ? true : val;
 });
 
+// File open handling
+let pendingFilePath: string | null = null;
+
+function handleFileOpen(filePath: string): void {
+  if (!filePath || (!filePath.endsWith('.txt') && !filePath.endsWith('.md') && !filePath.endsWith('.markdown'))) return;
+
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const fileName = path.basename(filePath, path.extname(filePath));
+    const crypto = require('crypto');
+
+    function mdToHtmlSimple(text: string): string {
+      return text
+        .split('\n')
+        .map((line: string) => {
+          if (line.startsWith('### ')) return `<h3>${line.slice(4)}</h3>`;
+          if (line.startsWith('## ')) return `<h2>${line.slice(3)}</h2>`;
+          if (line.startsWith('# ')) return `<h1>${line.slice(2)}</h1>`;
+          if (line.startsWith('- [ ] ')) return `<li data-type="taskItem" data-checked="false"><p>${line.slice(6)}</p></li>`;
+          if (line.startsWith('- [x] ')) return `<li data-type="taskItem" data-checked="true"><p>${line.slice(6)}</p></li>`;
+          if (line.startsWith('- ')) return `<li><p>${line.slice(2)}</p></li>`;
+          if (line.startsWith('> ')) return `<blockquote><p>${line.slice(2)}</p></blockquote>`;
+          if (line.trim() === '') return '<p></p>';
+          return `<p>${line}</p>`;
+        })
+        .join('');
+    }
+
+    const newNote: Note = {
+      id: crypto.randomUUID(),
+      title: fileName,
+      content: mdToHtmlSimple(content),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const notes = store.get('notes');
+    notes.push(newNote);
+    store.set('notes', notes);
+
+    createNoteWindow(newNote.id);
+    broadcastUpdate();
+  } catch {}
+}
+
+// Single instance lock
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (_event, commandLine) => {
+    // Someone tried to open a file while app is already running
+    const filePath = commandLine.find((arg) => arg.endsWith('.txt') || arg.endsWith('.md') || arg.endsWith('.markdown'));
+    if (filePath) {
+      handleFileOpen(filePath);
+    } else {
+      createMainWindow();
+    }
+  });
+}
+
 // App lifecycle
 app.on('ready', () => {
   // Show splash screen
@@ -1407,10 +1468,16 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Segoe U
     checkReminders();
     setInterval(checkReminders, 60000);
 
-    // Show main window on start if enabled (default: true)
-    const showOnStart = store.get('showOnStart' as any);
-    if (showOnStart === undefined || showOnStart === true) {
-      createMainWindow();
+    // Handle file opened via command line (double-click .txt/.md)
+    const fileArg = process.argv.find((arg) => arg.endsWith('.txt') || arg.endsWith('.md') || arg.endsWith('.markdown'));
+    if (fileArg) {
+      handleFileOpen(fileArg);
+    } else {
+      // Show main window on start if enabled (default: true)
+      const showOnStart = store.get('showOnStart' as any);
+      if (showOnStart === undefined || showOnStart === true) {
+        createMainWindow();
+      }
     }
 
     app.setLoginItemSettings({

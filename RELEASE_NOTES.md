@@ -1,3 +1,28 @@
+# NoteIt Notes v1.0.4
+
+## Changes
+
+### Added
+- File associations — NoteIt now appears in "Open with" for .txt and .md files
+- Global search with content preview — Ctrl+P searches inside note content with highlighted matches
+- Search results show content snippet, tags, and match count
+- Single instance lock — opening a file when NoteIt is running reuses existing instance
+
+### Improved
+- Search results increased from 10 to 20
+- Auto-scroll to selected result in command palette
+- Install location changed to Program Files (per-machine)
+
+---
+
+**Download:** `NoteIt_Notes_Setup_1.0.4.exe`
+
+**Requirements:** Windows 10 or later (x64)
+
+*© 2026 The Cloudest – Tomasz Iwanowski*
+
+---
+
 # NoteIt Notes v1.0.3
 
 ## Changes
