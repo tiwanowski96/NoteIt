@@ -1,3 +1,26 @@
+# NoteIt Notes v1.0.6
+
+## Changes
+
+### Added
+- Dictation button in editor toolbar — activates Windows Voice Typing (Win+H)
+- Gradient background in light and dark mode
+
+### Improved
+- Note card hover gradient bar now rounds with card corners
+- Settings links replaced with icon buttons and tooltips
+- Cleaner Settings UI layout
+
+---
+
+**Download:** `NoteIt_Notes_Setup_1.0.6.exe`
+
+**Requirements:** Windows 10 or later (x64)
+
+*© 2026 The Cloudest – Tomasz Iwanowski*
+
+---
+
 # NoteIt Notes v1.0.5
 
 ## Changes

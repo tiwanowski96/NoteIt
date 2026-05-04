@@ -8,6 +8,18 @@ interface Props {
 function Changelog({ onClose }: Props) {
   const { lang } = useLang();
 
+  const features106 = lang === 'en' ? [
+    'Dictation — microphone button activates Windows Voice Typing',
+    'Gradient background in light and dark mode',
+    'Note card hover bar rounds with card corners',
+    'Settings links as icon buttons with tooltips',
+  ] : [
+    'Dyktowanie — przycisk mikrofonu aktywuje Windows Voice Typing',
+    'Gradientowe tlo w jasnym i ciemnym trybie',
+    'Pasek hover notatki zaokragla sie z rogami karty',
+    'Linki w Ustawieniach jako ikony z podpisami',
+  ];
+
   const features105 = lang === 'en' ? [
     'Search bar opens full-text search modal',
     'Unified search experience (search bar = Ctrl+P)',
@@ -98,6 +110,17 @@ function Changelog({ onClose }: Props) {
           </button>
         </div>
         <div className="changelog-content">
+          <div className="changelog-version">
+            <div className="changelog-version-header">
+              <span className="changelog-badge">v1.0.6</span>
+              <span className="changelog-date">2026</span>
+            </div>
+            <ul className="changelog-list">
+              {features106.map((feature, i) => (
+                <li key={i}>{feature}</li>
+              ))}
+            </ul>
+          </div>
           <div className="changelog-version">
             <div className="changelog-version-header">
               <span className="changelog-badge">v1.0.5</span>
