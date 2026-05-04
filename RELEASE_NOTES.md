@@ -3,7 +3,6 @@
 ## Changes
 
 ### Added
-- Dictation button in editor toolbar — activates Windows Voice Typing (Win+H)
 - Gradient background in light and dark mode
 
 ### Improved

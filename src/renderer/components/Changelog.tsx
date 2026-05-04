@@ -9,12 +9,10 @@ function Changelog({ onClose }: Props) {
   const { lang } = useLang();
 
   const features106 = lang === 'en' ? [
-    'Dictation — microphone button activates Windows Voice Typing',
     'Gradient background in light and dark mode',
     'Note card hover bar rounds with card corners',
     'Settings links as icon buttons with tooltips',
   ] : [
-    'Dyktowanie — przycisk mikrofonu aktywuje Windows Voice Typing',
     'Gradientowe tlo w jasnym i ciemnym trybie',
     'Pasek hover notatki zaokragla sie z rogami karty',
     'Linki w Ustawieniach jako ikony z podpisami',
