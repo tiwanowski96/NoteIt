@@ -46,7 +46,6 @@ function getCardColor(colorKey: string | undefined, currentTheme: 'light' | 'dar
 
 function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPermanentDelete, onExport, theme, onToggleTheme, onShowShortcuts, onShowSettings, onShowStats, onShowCommandPalette, onKanbanStatusChange, onShowPomodoro, onExportZip, pomodoroRunning, onShowOnboarding, updateInfo, onDismissUpdate }: Props) {
   const { t, pluralizeNotes, lang } = useLang();
-  const [search, setSearch] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('updatedAt');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [showTrash, setShowTrash] = useState(false);
@@ -85,16 +84,6 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
 
   function filterNotes(notesToFilter: Note[]): Note[] {
     let filtered = notesToFilter;
-
-    if (search) {
-      const query = search.toLowerCase();
-      filtered = filtered.filter((note) => {
-        const titleMatch = note.title.toLowerCase().includes(query);
-        const contentMatch = stripHtml(note.content).toLowerCase().includes(query);
-        const tagMatch = (note.tags || []).some((tg) => tg.toLowerCase().includes(query));
-        return titleMatch || contentMatch || tagMatch;
-      });
-    }
 
     if (filterTag) {
       filtered = filtered.filter((note) => (note.tags || []).includes(filterTag));
@@ -190,16 +179,6 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
           </button>
           <button
             className="btn-icon"
-            onClick={onShowCommandPalette}
-            title={`${t('searchNoteMenu')} (Ctrl+P)`}
-            aria-label={t('searchNoteMenu')}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-          </button>
-          <button
-            className="btn-icon"
             onClick={onShowStats}
             title={t('statsMenu')}
             aria-label={t('statsMenu')}
@@ -268,10 +247,6 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
             </button>
             {showHamburger && (
               <div className="hamburger-menu" onMouseLeave={() => setShowHamburger(false)}>
-                <button className="hamburger-menu-item" onClick={() => { onShowCommandPalette(); setShowHamburger(false); }}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                  {t('searchNoteMenu')}
-                </button>
                 <button className={`hamburger-menu-item ${pomodoroRunning ? 'pomodoro-active' : ''}`} onClick={() => { onShowPomodoro(); setShowHamburger(false); }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   {t('pomodoroMenu')} {pomodoroRunning ? '●' : ''}
@@ -322,14 +297,14 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
 
       {/* Controls bar */}
       <div className="controls-bar">
-        <div className="search-wrapper">
+        <div className="search-wrapper" onClick={onShowCommandPalette} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') onShowCommandPalette(); }} style={{ cursor: 'pointer' }}>
           <SearchIcon className="search-icon" />
           <input
             type="text"
             className="search-input"
             placeholder={t('search')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            readOnly
+            style={{ cursor: 'pointer' }}
             aria-label={t('search')}
           />
         </div>
@@ -513,7 +488,7 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
           </div>
           {showTrash ? (
             <p>{t('trashEmpty')}</p>
-          ) : search || filterTag ? (
+          ) : filterTag ? (
             <p>{t('noResults')}</p>
           ) : (
             <>

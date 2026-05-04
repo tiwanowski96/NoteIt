@@ -8,6 +8,14 @@ interface Props {
 function Changelog({ onClose }: Props) {
   const { lang } = useLang();
 
+  const features105 = lang === 'en' ? [
+    'Search bar opens full-text search modal',
+    'Unified search experience (search bar = Ctrl+P)',
+  ] : [
+    'Pasek wyszukiwania otwiera modal pelnotekstowego wyszukiwania',
+    'Ujednolicone wyszukiwanie (pasek = Ctrl+P)',
+  ];
+
   const features104 = lang === 'en' ? [
     'Open .txt and .md files directly in NoteIt',
     'Global search now searches inside note content',
@@ -90,6 +98,17 @@ function Changelog({ onClose }: Props) {
           </button>
         </div>
         <div className="changelog-content">
+          <div className="changelog-version">
+            <div className="changelog-version-header">
+              <span className="changelog-badge">v1.0.5</span>
+              <span className="changelog-date">2026</span>
+            </div>
+            <ul className="changelog-list">
+              {features105.map((feature, i) => (
+                <li key={i}>{feature}</li>
+              ))}
+            </ul>
+          </div>
           <div className="changelog-version">
             <div className="changelog-version-header">
               <span className="changelog-badge">v1.0.4</span>

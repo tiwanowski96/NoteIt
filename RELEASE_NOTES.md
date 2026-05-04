@@ -1,3 +1,22 @@
+# NoteIt Notes v1.0.5
+
+## Changes
+
+### Improved
+- Search bar now opens full-text search modal (same as Ctrl+P)
+- Removed redundant search icon from navbar and hamburger menu
+- Cleaner, unified search experience
+
+---
+
+**Download:** `NoteIt_Notes_Setup_1.0.5.exe`
+
+**Requirements:** Windows 10 or later (x64)
+
+*© 2026 The Cloudest – Tomasz Iwanowski*
+
+---
+
 # NoteIt Notes v1.0.4
 
 ## Changes
