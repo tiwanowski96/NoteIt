@@ -76,11 +76,13 @@
       "publisherDisplayName": "The Cloudest Tomasz Iwanowski",
       "applicationId": "NoteItNotes",
       "artifactName": "NoteIt_Notes_Setup_${version}.${ext}",
+      "backgroundColor": "#ffffff",
       "languages": [
         "en-US",
         "pl-PL"
       ],
-      "setBuildNumber": false
+      "setBuildNumber": false,
+      "showNameOnTiles": false
     },
     "nsis": {
       "oneClick": true,

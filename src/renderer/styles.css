@@ -3898,6 +3898,8 @@ body {
 .vault-main {
   width: 720px;
   max-width: 90vw;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
 }
 
 .vault-window-mode {
@@ -4757,6 +4759,32 @@ body {
 
 @keyframes fadeOut {
   to { opacity: 0; transform: translateX(-50%) translateY(4px); }
+}
+
+.vault-clipboard-timer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.vault-clipboard-timer-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: var(--accent);
+  transition: width 1s linear;
+  border-radius: 0 2px 2px 0;
 }
 
 /* Password strength indicator */

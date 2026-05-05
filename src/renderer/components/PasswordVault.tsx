@@ -53,7 +53,7 @@ type VaultView = 'loading' | 'create' | 'unlock' | 'entries';
 type CategoryFilter = 'all' | string;
 
 const DEFAULT_CATEGORIES = ['social', 'email', 'banking', 'work', 'shopping', 'other', 'archive'];
-const CLIPBOARD_CLEAR_MS = 30 * 1000; // 30 seconds
+const CLIPBOARD_CLEAR_MS = 15 * 1000; // 15 seconds
 
 const LOCK_TIMEOUT_OPTIONS = [
   { value: 5, label: '5 min' },
@@ -89,6 +89,8 @@ export default function PasswordVault({ onClose, isWindow = false }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [showGenerator, setShowGenerator] = useState(false);
   const [toast, setToast] = useState('');
+  const [clipboardTimer, setClipboardTimer] = useState(0);
+  const clipboardTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [error, setError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [showPasswords, setShowPasswords] = useState<Set<string>>(new Set());
@@ -316,7 +318,17 @@ export default function PasswordVault({ onClose, isWindow = false }: Props) {
   async function handleCopy(text: string, entryId?: string) {
     resetActivity();
     setContextMenu(null);
-    await navigator.clipboard.writeText(text);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Fallback for when clipboard API fails
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
     if (entryId) {
       try {
         const data = JSON.parse(localStorage.getItem('noteit-vault-lastused') || '{}');
@@ -325,15 +337,22 @@ export default function PasswordVault({ onClose, isWindow = false }: Props) {
       } catch {}
     }
     showToast(t('vaultCopied'));
-    setTimeout(async () => {
-      try {
-        const current = await navigator.clipboard.readText();
-        if (current === text) {
-          await navigator.clipboard.writeText('');
-          showToast(t('vaultAutoCleared'));
+    // Start visible countdown
+    if (clipboardTimerRef.current) clearInterval(clipboardTimerRef.current);
+    setClipboardTimer(15);
+    const copiedText = text;
+    clipboardTimerRef.current = setInterval(() => {
+      setClipboardTimer((prev) => {
+        if (prev <= 1) {
+          if (clipboardTimerRef.current) clearInterval(clipboardTimerRef.current);
+          clipboardTimerRef.current = null;
+          // Clear clipboard
+          navigator.clipboard.writeText('').catch(() => {});
+          return 0;
         }
-      } catch {}
-    }, CLIPBOARD_CLEAR_MS);
+        return prev - 1;
+      });
+    }, 1000);
   }
 
   function showToast(msg: string) {
@@ -1082,6 +1101,13 @@ export default function PasswordVault({ onClose, isWindow = false }: Props) {
 
         {/* Toast */}
         {toast && <div className="vault-toast">{toast}</div>}
+        {/* Clipboard timer */}
+        {clipboardTimer > 0 && (
+          <div className="vault-clipboard-timer">
+            <div className="vault-clipboard-timer-bar" style={{ width: `${(clipboardTimer / 15) * 100}%` }} />
+            <span>{t('vaultClipboardClear')} {clipboardTimer}s</span>
+          </div>
+        )}
     </div>
   );
 
