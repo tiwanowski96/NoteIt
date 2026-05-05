@@ -51,6 +51,10 @@ function ShortcutsPanel({ onClose }: Props) {
             <span>{t('showShortcuts')}</span>
             <span className="shortcut-key"><kbd>Shift</kbd>+<kbd>/</kbd> <small>(?)</small></span>
           </div>
+          <div className="shortcut-row">
+            <span>{t('openVault')}</span>
+            <span className="shortcut-key"><kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd></span>
+          </div>
         </div>
 
         <div className="shortcut-group">

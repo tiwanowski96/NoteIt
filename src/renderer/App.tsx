@@ -14,6 +14,7 @@ import PomodoroTimer from './components/PomodoroTimer';
 import WindowControls from './components/WindowControls';
 import { UnlockModal } from './components/LockNote';
 import SkeletonLoader from './components/SkeletonLoader';
+import PasswordVault from './components/PasswordVault';
 
 function App() {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -38,6 +39,7 @@ function App() {
   const [unlockError, setUnlockError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [updateInfo, setUpdateInfo] = useState<{ version: string; url: string } | null>(null);
+  const [showVault, setShowVault] = useState(false);
 
   // Pomodoro global state (persists when modal is closed)
   const [pomodoroRunning, setPomodoroRunning] = useState(false);
@@ -155,6 +157,17 @@ function App() {
     }
   }, []);
 
+  // Sync lang across windows via storage event
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'noteit-lang' && e.newValue) {
+        setLang(e.newValue as Lang);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
   useEffect(() => {
     const unsub = window.electronAPI.onThemeChanged((newTheme: string) => {
       const t = newTheme as 'light' | 'dark';
@@ -175,6 +188,13 @@ function App() {
   useEffect(() => {
     const unsub = window.electronAPI.onUpdateAvailable((data) => {
       setUpdateInfo(data);
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    const unsub = window.electronAPI.onShowVaultModal(() => {
+      setShowVault(true);
     });
     return unsub;
   }, []);
@@ -237,6 +257,15 @@ function App() {
       if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
         e.preventDefault();
         setShowCommandPalette(true);
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'L') {
+        e.preventDefault();
+        const pref = localStorage.getItem('noteit-vault-mode');
+        if (pref === 'window') {
+          window.electronAPI.openVaultWindow();
+        } else {
+          setShowVault(true);
+        }
       }
       if (e.key === '?' && !e.ctrlKey && !e.metaKey && !(e.target as HTMLElement).matches('input, textarea, [contenteditable]')) {
         e.preventDefault();
@@ -432,7 +461,6 @@ function App() {
           onBack={handleBack}
           onDelete={() => handleDeleteNote(selectedNote.id)}
           theme={theme}
-          onToggleTheme={toggleTheme}
           fontSize={fontSize}
           alwaysOnTop={alwaysOnTop}
           onToggleAlwaysOnTop={handleToggleAlwaysOnTop}
@@ -441,6 +469,18 @@ function App() {
           onCreateChild={handleCreateChildNote}
         />
       </div>
+      </LangProvider>
+    );
+  }
+
+  // Vault window mode
+  if (windowMode === 'vault') {
+    return (
+      <LangProvider lang={lang}>
+        <div className="app">
+          <WindowControls />
+          <PasswordVault onClose={() => window.close()} isWindow={true} />
+        </div>
       </LangProvider>
     );
   }
@@ -464,7 +504,6 @@ function App() {
           onPermanentDelete={handlePermanentDelete}
           onExport={handleExportNote}
           theme={theme}
-          onToggleTheme={toggleTheme}
           onShowShortcuts={() => setShowShortcuts(true)}
           onShowSettings={() => setShowSettings(true)}
           onShowStats={() => setShowStats(true)}
@@ -474,6 +513,14 @@ function App() {
           onExportZip={handleExportZip}
           pomodoroRunning={pomodoroRunning}
           onShowOnboarding={() => setShowOnboarding(true)}
+          onShowVault={() => {
+            const pref = localStorage.getItem('noteit-vault-mode');
+            if (pref === 'window') {
+              window.electronAPI.openVaultWindow();
+            } else {
+              setShowVault(true);
+            }
+          }}
           updateInfo={updateInfo}
           onDismissUpdate={() => setUpdateInfo(null)}
         />
@@ -485,7 +532,6 @@ function App() {
           onBack={handleBack}
           onDelete={() => selectedNote && handleDeleteNote(selectedNote.id)}
           theme={theme}
-          onToggleTheme={toggleTheme}
           fontSize={fontSize}
           alwaysOnTop={alwaysOnTop}
           onToggleAlwaysOnTop={handleToggleAlwaysOnTop}
@@ -532,6 +578,8 @@ function App() {
           onFontSizeChange={handleFontSizeChange}
           lang={lang}
           onLangChange={handleLangChange}
+          theme={theme}
+          onToggleTheme={toggleTheme}
           autoStart={autoStart}
           onAutoStartChange={handleAutoStartChange}
           showOnStart={showOnStart}
@@ -583,6 +631,9 @@ function App() {
             window.electronAPI.openPomodoroMini(pomodoroMode, pomodoroTimeLeft, pomodoroRunning);
           }}
         />
+      )}
+      {showVault && (
+        <PasswordVault onClose={() => setShowVault(false)} />
       )}
     </div>
     </LangProvider>

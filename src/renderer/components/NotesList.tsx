@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Note, SortMode, ViewMode } from '../types';
-import { PlusIcon, TrashIcon, SearchIcon, NoteIcon, SunIcon, MoonIcon } from './Icons';
+import { PlusIcon, TrashIcon, SearchIcon, NoteIcon } from './Icons';
 import KanbanView from './KanbanView';
 import { useLang } from '../LangContext';
 
@@ -14,7 +14,6 @@ interface Props {
   onPermanentDelete: (noteId: string) => void;
   onExport: (noteId: string, format: string) => void;
   theme: 'light' | 'dark';
-  onToggleTheme: () => void;
   onShowShortcuts: () => void;
   onShowSettings: () => void;
   onShowStats: () => void;
@@ -24,6 +23,7 @@ interface Props {
   onExportZip: (noteIds: string[]) => void;
   pomodoroRunning: boolean;
   onShowOnboarding: () => void;
+  onShowVault: () => void;
   updateInfo?: { version: string; url: string } | null;
   onDismissUpdate?: () => void;
 }
@@ -44,7 +44,7 @@ function getCardColor(colorKey: string | undefined, currentTheme: 'light' | 'dar
   return currentTheme === 'dark' ? found.dark : found.light;
 }
 
-function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPermanentDelete, onExport, theme, onToggleTheme, onShowShortcuts, onShowSettings, onShowStats, onShowCommandPalette, onKanbanStatusChange, onShowPomodoro, onExportZip, pomodoroRunning, onShowOnboarding, updateInfo, onDismissUpdate }: Props) {
+function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPermanentDelete, onExport, theme, onShowShortcuts, onShowSettings, onShowStats, onShowCommandPalette, onKanbanStatusChange, onShowPomodoro, onExportZip, pomodoroRunning, onShowOnboarding, onShowVault, updateInfo, onDismissUpdate }: Props) {
   const { t, pluralizeNotes, lang } = useLang();
   const [sortMode, setSortMode] = useState<SortMode>('updatedAt');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -151,6 +151,16 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
         </div>
         <div className="notes-list-header-right">
           <button
+            className="btn-icon"
+            onClick={onShowVault}
+            title={t('vault')}
+            aria-label={t('vault')}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+            </svg>
+          </button>
+          <button
             className={`btn-icon ${showTrash ? 'active-trash' : ''}`}
             onClick={() => { setShowTrash(!showTrash); setSelectedIds(new Set()); setSelectionMode(false); }}
             title={showTrash ? t('back') : t('trash')}
@@ -231,14 +241,6 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
               </button>
             </>
           )}
-          <button
-            className="theme-toggle"
-            onClick={onToggleTheme}
-            title={theme === 'light' ? t('darkTheme') : t('lightTheme')}
-            aria-label={theme === 'light' ? t('darkTheme') : t('lightTheme')}
-          >
-            {theme === 'light' ? <MoonIcon /> : <SunIcon />}
-          </button>
           <div className="hamburger-wrapper" style={{ position: 'relative' }}>
             <button className="hamburger-btn" onClick={() => setShowHamburger(!showHamburger)} aria-label="Menu">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -247,6 +249,10 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
             </button>
             {showHamburger && (
               <div className="hamburger-menu" onMouseLeave={() => setShowHamburger(false)}>
+                <button className="hamburger-menu-item" onClick={() => { onShowVault(); setShowHamburger(false); }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                  {t('vault')}
+                </button>
                 <button className={`hamburger-menu-item ${pomodoroRunning ? 'pomodoro-active' : ''}`} onClick={() => { onShowPomodoro(); setShowHamburger(false); }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                   {t('pomodoroMenu')} {pomodoroRunning ? '●' : ''}
@@ -271,10 +277,6 @@ function NotesList({ notes, onSelect, onNew, onDelete, onPin, onRestore, onPerma
                 <button className="hamburger-menu-item" onClick={() => { window.electronAPI.importFiles(); setShowHamburger(false); }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                   {t('importFiles')}
-                </button>
-                <button className="hamburger-menu-item" onClick={() => { onToggleTheme(); setShowHamburger(false); }}>
-                  {theme === 'light' ? <MoonIcon size={14} /> : <SunIcon size={14} />}
-                  {theme === 'light' ? t('darkTheme') : t('lightTheme')}
                 </button>
               </div>
             )}

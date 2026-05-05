@@ -14,6 +14,7 @@
 - [Wyszukiwanie](#wyszukiwanie)
 - [Kosz](#kosz)
 - [Ustawienia](#ustawienia)
+- [Sejf haseł](#sejf-haseł)
 - [Skroty klawiszowe](#skroty-klawiszowe)
 - [Prywatnosc](#prywatnosc)
 
@@ -442,6 +443,47 @@ Dostep do ustawien z menu hamburger → "Ustawienia".
 | Ikona pobierania | Eksportuj jako Markdown |
 | Ikona dzwonka | Ustaw przypomnienie |
 | Ikona zamka | Zaszyfruj / odszyfruj notatke |
+
+---
+
+## Sejf haseł
+
+NoteIt zawiera wbudowany menedżer haseł z silnym szyfrowaniem.
+
+### Model bezpieczeństwa
+
+- Szyfrowanie **AES-256-GCM** dla wszystkich danych sejfu
+- **Dwuskładnikowa ochrona**: hasło główne + plik klucza (oba wymagane)
+- **PBKDF2** z 200 000 iteracji do wyprowadzania klucza
+- Klucz zerowany w pamięci przy blokadzie
+
+### Rozpoczęcie pracy
+
+1. Kliknij ikonę klucza na pasku narzędzi (lub Ctrl+Shift+L)
+2. Przejdź do zakładki "Utwórz nowy sejf"
+3. Podaj nazwę sejfu, hasło główne i potwierdź
+4. Wybierz gdzie zapisać plik klucza (.noteit-key) i plik sejfu (.noteit-vault)
+5. Przechowuj plik klucza w bezpiecznym miejscu — bez niego sejf nie może być otwarty
+
+### Funkcje
+
+- **Wpisy**: nazwa, URL, login, hasło, notatki, kategoria
+- **Kategorie**: Społeczności, Email, Bankowość, Praca, Zakupy, Inne, Archiwum + własne
+- **Generator haseł**: konfigurowalna długość (8-64), wielkie/małe litery, cyfry, znaki specjalne
+- **Auto-blokada**: konfigurowalny czas (5 min do 12 godzin)
+- **Auto-czyszczenie schowka**: skopiowane hasła usuwane po 30 sekundach
+- **Import/Eksport CSV**: kompatybilny z KeePass i innymi menedżerami
+- **Zmiana hasła**: ponowne szyfrowanie pliku klucza nowym hasłem
+- **Tryb okna**: otwórz sejf w osobnym oknie lub jako modal
+- **Menu kontekstowe**: prawy klik na wpisie — szybkie kopiowanie/edycja/usuwanie
+- **Sortowanie**: po nazwie, kategorii lub ostatnio używane
+
+### Lokalizacja plików
+
+- **Plik sejfu** (.noteit-vault): zaszyfrowane wpisy, przechowywany w wybranej lokalizacji
+- **Plik klucza** (.noteit-key): zaszyfrowany klucz główny, przechowywany w wybranej lokalizacji (np. pendrive)
+
+Oba pliki są wymagane do otwarcia sejfu. Przechowuj plik klucza osobno od sejfu dla maksymalnego bezpieczeństwa.
 
 ---
 

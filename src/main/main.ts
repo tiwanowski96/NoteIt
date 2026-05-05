@@ -159,6 +159,50 @@ function createNoteWindow(noteId: string, mode: string = 'editor'): void {
   noteWindows.set(noteId, noteWindow);
 }
 
+function createVaultWindow(): void {
+  const existing = noteWindows.get('__vault__');
+  if (existing && !existing.isDestroyed()) {
+    existing.show();
+    existing.focus();
+    return;
+  }
+
+  const vaultWin = new BrowserWindow({
+    width: 750,
+    height: 650,
+    minWidth: 500,
+    minHeight: 400,
+    show: false,
+    frame: false,
+    icon: getIconPath(),
+    backgroundColor: '#ffffff',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  const baseUrl = getBaseUrl();
+  if (baseUrl.startsWith('http')) {
+    vaultWin.loadURL(`${baseUrl}?mode=vault`);
+  } else {
+    vaultWin.loadFile(path.join(__dirname, '../renderer/index.html'), {
+      query: { mode: 'vault' },
+    });
+  }
+
+  vaultWin.once('ready-to-show', () => {
+    vaultWin.show();
+  });
+
+  vaultWin.on('closed', () => {
+    noteWindows.delete('__vault__');
+  });
+
+  noteWindows.set('__vault__', vaultWin);
+}
+
 function showLastNote(): void {
   const notes = store.get('notes').filter((n: Note) => !n.deleted);
   if (notes.length === 0) {
@@ -610,6 +654,21 @@ ipcMain.handle('save-image', async (_event, dataUrl: string) => {
 
 ipcMain.handle('open-note-window', (_event, noteId: string) => {
   createNoteWindow(noteId);
+});
+
+ipcMain.handle('open-vault-window', () => {
+  createVaultWindow();
+});
+
+ipcMain.handle('close-vault-window', () => {
+  const vaultWin = noteWindows.get('__vault__');
+  if (vaultWin && !vaultWin.isDestroyed()) {
+    vaultWin.close();
+  }
+  // Signal main window to open vault modal
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('show-vault-modal');
+  }
 });
 
 ipcMain.handle('open-sticky-note', (_event, noteId: string) => {
@@ -1341,6 +1400,388 @@ ipcMain.handle('get-check-updates', () => {
   return val === undefined ? true : val;
 });
 
+// ===== PASSWORD VAULT =====
+const cryptoModule = require('crypto') as typeof import('crypto');
+
+interface VaultEntry {
+  id: string;
+  name: string;
+  url: string;
+  username: string;
+  password: string;
+  notes: string;
+  category: 'social' | 'email' | 'banking' | 'work' | 'shopping' | 'other';
+  createdAt: string;
+  updatedAt: string;
+}
+
+let vaultUnlocked = false;
+let vaultRawKey: Buffer | null = null;
+let vaultEntries: VaultEntry[] = [];
+let currentVaultPath: string | null = null;
+
+function getDefaultVaultPath(): string {
+  return path.join(app.getPath('userData'), 'default.noteit-vault');
+}
+
+function encryptAesGcm(data: Buffer, key: Buffer): { iv: string; tag: string; encrypted: string } {
+  const iv = cryptoModule.randomBytes(12);
+  const cipher = cryptoModule.createCipheriv('aes-256-gcm', key, iv);
+  const encrypted = Buffer.concat([cipher.update(data), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return { iv: iv.toString('hex'), tag: tag.toString('hex'), encrypted: encrypted.toString('hex') };
+}
+
+function decryptAesGcm(encData: { iv: string; tag: string; encrypted: string }, key: Buffer): Buffer {
+  const decipher = cryptoModule.createDecipheriv('aes-256-gcm', key, Buffer.from(encData.iv, 'hex'));
+  decipher.setAuthTag(Buffer.from(encData.tag, 'hex'));
+  return Buffer.concat([decipher.update(Buffer.from(encData.encrypted, 'hex')), decipher.final()]);
+}
+
+function deriveKeyFromPassword(password: string, salt: Buffer): Buffer {
+  return cryptoModule.pbkdf2Sync(password, salt, 200000, 32, 'sha256');
+}
+
+function saveVaultToDisk(): void {
+  if (!vaultRawKey || !currentVaultPath) return;
+  const plaintext = Buffer.from(JSON.stringify(vaultEntries), 'utf-8');
+  const encData = encryptAesGcm(plaintext, vaultRawKey);
+  const vaultFile = { version: 1, ...encData };
+  fs.writeFileSync(currentVaultPath, JSON.stringify(vaultFile, null, 2), 'utf-8');
+}
+
+ipcMain.handle('vault-exists', () => {
+  // Check if default vault exists OR if user has a saved vault path
+  return fs.existsSync(getDefaultVaultPath());
+});
+
+ipcMain.handle('vault-create', async (_event, password: string, vaultName: string) => {
+  try {
+    const win = BrowserWindow.fromWebContents(_event.sender);
+
+    // 1. Generate random raw key (32 bytes)
+    const rawKey = cryptoModule.randomBytes(32);
+
+    // 2. Ask user where to save key file
+    const safeName = vaultName.replace(/[<>:"/\\|?*]/g, '_') || 'vault';
+    const keyResult = await dialog.showSaveDialog(win || mainWindow!, {
+      title: 'Save Key File',
+      defaultPath: `${safeName}.noteit-key`,
+      filters: [{ name: 'NoteIt Key File', extensions: ['noteit-key'] }],
+    });
+    if (keyResult.canceled || !keyResult.filePath) return { success: false };
+
+    // 3. Ask user where to save vault file
+    const vaultResult = await dialog.showSaveDialog(win || mainWindow!, {
+      title: 'Save Vault File',
+      defaultPath: `${safeName}.noteit-vault`,
+      filters: [{ name: 'NoteIt Vault', extensions: ['noteit-vault'] }],
+    });
+    if (vaultResult.canceled || !vaultResult.filePath) return { success: false };
+
+    // 4. Encrypt raw key with password
+    const salt = cryptoModule.randomBytes(16);
+    const derivedKey = deriveKeyFromPassword(password, salt);
+    const encKey = encryptAesGcm(rawKey, derivedKey);
+    const keyFile = { version: 1, salt: salt.toString('hex'), ...encKey };
+    fs.writeFileSync(keyResult.filePath, JSON.stringify(keyFile, null, 2), 'utf-8');
+
+    // 5. Create empty vault encrypted with raw key
+    const plaintext = Buffer.from(JSON.stringify([]), 'utf-8');
+    const encVault = encryptAesGcm(plaintext, rawKey);
+    const vaultFile = { version: 1, ...encVault };
+    fs.writeFileSync(vaultResult.filePath, JSON.stringify(vaultFile, null, 2), 'utf-8');
+
+    // 6. Set state
+    vaultUnlocked = true;
+    vaultRawKey = rawKey;
+    vaultEntries = [];
+    currentVaultPath = vaultResult.filePath;
+
+    return { success: true, keyFilePath: keyResult.filePath, vaultPath: vaultResult.filePath };
+  } catch {
+    return { success: false };
+  }
+});
+
+ipcMain.handle('vault-unlock', (_event, password: string, keyFilePath: string, vaultFilePath: string | null) => {
+  try {
+    // 1. Read and decrypt key file
+    if (!fs.existsSync(keyFilePath)) return false;
+    const keyFileData = JSON.parse(fs.readFileSync(keyFilePath, 'utf-8'));
+    if (keyFileData.version !== 1) return false;
+
+    const salt = Buffer.from(keyFileData.salt, 'hex');
+    const derivedKey = deriveKeyFromPassword(password, salt);
+
+    let rawKey: Buffer;
+    try {
+      rawKey = decryptAesGcm({ iv: keyFileData.iv, tag: keyFileData.tag, encrypted: keyFileData.encrypted }, derivedKey);
+    } catch {
+      return false; // Wrong password
+    }
+
+    // 2. Read and decrypt vault
+    const vaultPath = vaultFilePath || getDefaultVaultPath();
+    if (!fs.existsSync(vaultPath)) return false;
+    const vaultFileData = JSON.parse(fs.readFileSync(vaultPath, 'utf-8'));
+
+    let decrypted: Buffer;
+    try {
+      decrypted = decryptAesGcm({ iv: vaultFileData.iv, tag: vaultFileData.tag, encrypted: vaultFileData.encrypted }, rawKey);
+    } catch {
+      return false; // Wrong key file for this vault
+    }
+
+    vaultEntries = JSON.parse(decrypted.toString('utf-8'));
+    vaultRawKey = rawKey;
+    vaultUnlocked = true;
+    currentVaultPath = vaultPath;
+    return true;
+  } catch {
+    return false;
+  }
+});
+
+ipcMain.handle('vault-lock', () => {
+  vaultUnlocked = false;
+  if (vaultRawKey) {
+    vaultRawKey.fill(0);
+  }
+  vaultRawKey = null;
+  vaultEntries = [];
+  currentVaultPath = null;
+});
+
+ipcMain.handle('vault-is-unlocked', () => {
+  return vaultUnlocked;
+});
+
+ipcMain.handle('vault-get-entries', () => {
+  if (!vaultUnlocked) return [];
+  return vaultEntries;
+});
+
+ipcMain.handle('vault-save-entry', (_event, entry: VaultEntry) => {
+  if (!vaultUnlocked || !vaultRawKey) return;
+  const idx = vaultEntries.findIndex((e) => e.id === entry.id);
+  if (idx >= 0) {
+    vaultEntries[idx] = entry;
+  } else {
+    vaultEntries.push(entry);
+  }
+  saveVaultToDisk();
+});
+
+ipcMain.handle('vault-delete-entry', (_event, id: string) => {
+  if (!vaultUnlocked || !vaultRawKey) return;
+  vaultEntries = vaultEntries.filter((e) => e.id !== id);
+  saveVaultToDisk();
+});
+
+ipcMain.handle('vault-select-key-file', async (_event) => {
+  const win = BrowserWindow.fromWebContents(_event.sender);
+  const result = await dialog.showOpenDialog(win || mainWindow!, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'NoteIt Key File', extensions: ['noteit-key'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  return result.filePaths[0];
+});
+
+ipcMain.handle('vault-select-vault-file', async (_event) => {
+  const win = BrowserWindow.fromWebContents(_event.sender);
+  const result = await dialog.showOpenDialog(win || mainWindow!, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'NoteIt Vault', extensions: ['noteit-vault'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  return result.filePaths[0];
+});
+
+ipcMain.handle('vault-export', async () => {
+  try {
+    if (!currentVaultPath || !fs.existsSync(currentVaultPath)) return false;
+    const result = await dialog.showSaveDialog({
+      defaultPath: `noteit-vault-backup-${new Date().toISOString().slice(0, 10)}.noteit-vault`,
+      filters: [{ name: 'NoteIt Vault', extensions: ['noteit-vault'] }],
+    });
+    if (result.canceled || !result.filePath) return false;
+    fs.copyFileSync(currentVaultPath, result.filePath);
+    return true;
+  } catch {
+    return false;
+  }
+});
+
+ipcMain.handle('vault-import', async () => {
+  try {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [{ name: 'NoteIt Vault', extensions: ['noteit-vault'] }],
+    });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    return result.filePaths[0];
+  } catch {
+    return null;
+  }
+});
+
+ipcMain.handle('vault-generate-password', (_event, length: number, options: { uppercase: boolean; lowercase: boolean; digits: boolean; special: boolean }) => {
+  let chars = '';
+  if (options.lowercase) chars += 'abcdefghijklmnopqrstuvwxyz';
+  if (options.uppercase) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  if (options.digits) chars += '0123456789';
+  if (options.special) chars += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+  if (!chars) chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let password = '';
+  const randomBytes = cryptoModule.randomBytes(length);
+  for (let i = 0; i < length; i++) {
+    password += chars[randomBytes[i] % chars.length];
+  }
+  return password;
+});
+
+ipcMain.handle('vault-change-password', (_event, oldPassword: string, newPassword: string, keyFilePath: string) => {
+  try {
+    if (!fs.existsSync(keyFilePath)) return false;
+    const keyFileData = JSON.parse(fs.readFileSync(keyFilePath, 'utf-8'));
+    if (keyFileData.version !== 1) return false;
+
+    // Verify old password by decrypting key file
+    const salt = Buffer.from(keyFileData.salt, 'hex');
+    const oldDerivedKey = deriveKeyFromPassword(oldPassword, salt);
+    let rawKey: Buffer;
+    try {
+      rawKey = decryptAesGcm({ iv: keyFileData.iv, tag: keyFileData.tag, encrypted: keyFileData.encrypted }, oldDerivedKey);
+    } catch {
+      return false; // Wrong old password
+    }
+
+    // Re-encrypt raw key with new password
+    const newSalt = cryptoModule.randomBytes(16);
+    const newDerivedKey = deriveKeyFromPassword(newPassword, newSalt);
+    const encKey = encryptAesGcm(rawKey, newDerivedKey);
+    const newKeyFile = { version: 1, salt: newSalt.toString('hex'), ...encKey };
+    fs.writeFileSync(keyFilePath, JSON.stringify(newKeyFile, null, 2), 'utf-8');
+
+    return true;
+  } catch {
+    return false;
+  }
+});
+
+ipcMain.handle('vault-import-csv', async (_event) => {
+  const win = BrowserWindow.fromWebContents(_event.sender);
+  const result = await dialog.showOpenDialog(win || mainWindow!, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'CSV', extensions: ['csv'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+  });
+  if (result.canceled || result.filePaths.length === 0) return [];
+
+  try {
+    const content = fs.readFileSync(result.filePaths[0], 'utf-8');
+    const lines = content.split(/\r?\n/).filter((l: string) => l.trim());
+    if (lines.length < 2) return [];
+
+    // Parse CSV (handle quoted fields)
+    function parseCsvLine(line: string): string[] {
+      const fields: string[] = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+          if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+          else { inQuotes = !inQuotes; }
+        } else if (ch === ',' && !inQuotes) {
+          fields.push(current); current = '';
+        } else {
+          current += ch;
+        }
+      }
+      fields.push(current);
+      return fields;
+    }
+
+    const headers = parseCsvLine(lines[0]).map((h: string) => h.toLowerCase().trim());
+    const entries: VaultEntry[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const fields = parseCsvLine(lines[i]);
+      if (fields.length < 2) continue;
+
+      const get = (names: string[]): string => {
+        for (const name of names) {
+          const idx = headers.indexOf(name);
+          if (idx >= 0 && fields[idx]) return fields[idx].trim();
+        }
+        return '';
+      };
+
+      const entry: VaultEntry = {
+        id: cryptoModule.randomUUID(),
+        name: get(['account', 'title', 'name', 'group']),
+        username: get(['login name', 'username', 'login', 'user name', 'user']),
+        password: get(['password', 'pass']),
+        url: get(['web site', 'url', 'website', 'web']),
+        notes: get(['comments', 'notes', 'comment', 'note']),
+        category: 'other',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (entry.name || entry.username || entry.url) {
+        if (!entry.name) entry.name = entry.username || entry.url;
+        entries.push(entry);
+      }
+    }
+
+    return entries;
+  } catch {
+    return [];
+  }
+});
+
+ipcMain.handle('vault-export-csv', async (_event) => {
+  if (!vaultUnlocked || vaultEntries.length === 0) return false;
+
+  const win = BrowserWindow.fromWebContents(_event.sender);
+  const result = await dialog.showSaveDialog(win || mainWindow!, {
+    defaultPath: `vault-export-${new Date().toISOString().slice(0, 10)}.csv`,
+    filters: [{ name: 'CSV', extensions: ['csv'] }],
+  });
+  if (result.canceled || !result.filePath) return false;
+
+  try {
+    function escapeCsv(val: string): string {
+      if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+        return '"' + val.replace(/"/g, '""') + '"';
+      }
+      return val;
+    }
+
+    const header = 'Account,Login Name,Password,Web Site,Comments';
+    const rows = vaultEntries.map((e) =>
+      [e.name, e.username, e.password, e.url, e.notes].map(escapeCsv).join(',')
+    );
+    fs.writeFileSync(result.filePath, [header, ...rows].join('\r\n'), 'utf-8');
+    return true;
+  } catch {
+    return false;
+  }
+});
+// ===== END PASSWORD VAULT =====
+
 // File open handling
 let pendingFilePath: string | null = null;
 
@@ -1410,12 +1851,13 @@ app.on('ready', () => {
   const { width, height } = display.workAreaSize;
 
   const splashWindow = new BrowserWindow({
-    width: 400,
-    height: 250,
-    x: Math.round((width - 400) / 2),
-    y: Math.round((height - 250) / 2),
+    width: 420,
+    height: 270,
+    x: Math.round((width - 420) / 2),
+    y: Math.round((height - 270) / 2),
     frame: false,
     transparent: true,
+    hasShadow: false,
     alwaysOnTop: true,
     skipTaskbar: true,
     resizable: false,
@@ -1437,9 +1879,8 @@ app.on('ready', () => {
 <html><head><style>
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:100%;height:100%;overflow:hidden;background:transparent}
-body{display:flex;align-items:center;justify-content:center;font-family:'Segoe UI','Inter',sans-serif}
-.splash{width:100%;height:100%;border-radius:16px;background:#ffffff;border:3px solid transparent;background-clip:padding-box;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;box-shadow:0 20px 60px rgba(99,102,241,0.2)}
-.splash::before{content:'';position:absolute;inset:-3px;border-radius:18px;background:linear-gradient(135deg,#6366f1,#8b5cf6,#6366f1);z-index:-1}
+body{display:flex;align-items:center;justify-content:center;font-family:'Segoe UI','Inter',sans-serif;padding:10px}
+.splash{width:100%;height:100%;border-radius:16px;background:#ffffff;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;border:2px solid #6366f1}
 .logo img{height:52px;width:auto}
 .loader{display:flex;gap:6px;margin-top:8px}
 .loader span{width:8px;height:8px;border-radius:50%;background:#6366f1;animation:pulse 1.2s ease-in-out infinite}

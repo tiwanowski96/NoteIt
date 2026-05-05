@@ -8,6 +8,30 @@ interface Props {
 function Changelog({ onClose }: Props) {
   const { lang } = useLang();
 
+  const features110 = lang === 'en' ? [
+    'Password Vault with AES-256 encryption',
+    'Password strength indicator',
+    'Old password warning (90+ days)',
+    'File associations for .txt and .md',
+    'Full-text search with content preview',
+    'Dark mode moved to Settings',
+    'Custom vault categories + Archive',
+    'Import/export CSV (KeePass compatible)',
+    'Vault in separate window or modal',
+    'Polish diacritics in all translations',
+  ] : [
+    'Sejf haseł z szyfrowaniem AES-256',
+    'Wskaźnik siły hasła',
+    'Ostrzeżenie o starych hasłach (90+ dni)',
+    'Skojarzenia plików .txt i .md',
+    'Wyszukiwanie pełnotekstowe z podglądem',
+    'Ciemny motyw przeniesiony do Ustawień',
+    'Własne kategorie sejfu + Archiwum',
+    'Import/eksport CSV (kompatybilny z KeePass)',
+    'Sejf w osobnym oknie lub modalu',
+    'Polskie znaki diakrytyczne we wszystkich tłumaczeniach',
+  ];
+
   const features106 = lang === 'en' ? [
     'Gradient background in light and dark mode',
     'Note card hover bar rounds with card corners',
@@ -108,6 +132,17 @@ function Changelog({ onClose }: Props) {
           </button>
         </div>
         <div className="changelog-content">
+          <div className="changelog-version">
+            <div className="changelog-version-header">
+              <span className="changelog-badge">v1.1.0</span>
+              <span className="changelog-date">2026</span>
+            </div>
+            <ul className="changelog-list">
+              {features110.map((feature, i) => (
+                <li key={i}>{feature}</li>
+              ))}
+            </ul>
+          </div>
           <div className="changelog-version">
             <div className="changelog-version-header">
               <span className="changelog-badge">v1.0.6</span>

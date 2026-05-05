@@ -12,6 +12,7 @@ A fast, beautiful, and fully local desktop notes app for Windows. Rich text edit
 - 🎨 **Colors & Highlights** – text colors, highlight markers, note card colors
 - 📸 **Screenshots** – global shortcuts to capture screen areas to notes or clipboard
 - 🔒 **Encryption** – PIN-lock individual notes
+- 🔑 **Password Vault** – built-in password manager with AES-256-GCM, key file + master password, import/export CSV
 - 🏷️ **Tags** – up to 3 tags per note for filtering
 - 📋 **Kanban Board** – drag & drop notes between To do / In progress / Done
 - ⏱️ **Pomodoro Timer** – work/break sessions with mini always-on-top mode

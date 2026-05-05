@@ -14,7 +14,7 @@ import TableHeader from '@tiptap/extension-table-header';
 import Link from '@tiptap/extension-link';
 import { Note } from '../types';
 import Toolbar from './Toolbar';
-import { ArrowLeftIcon, TrashIcon, SunIcon, MoonIcon } from './Icons';
+import { ArrowLeftIcon, TrashIcon } from './Icons';
 import { SearchHighlightExtension, searchHighlightPluginKey, getSearchDecorations } from './SearchHighlight';
 import DateTimePicker from './DateTimePicker';
 import EmojiPicker from './EmojiPicker';
@@ -31,7 +31,6 @@ interface Props {
   onBack: () => void;
   onDelete: () => void;
   theme: 'light' | 'dark';
-  onToggleTheme: () => void;
   alwaysOnTop: boolean;
   onToggleAlwaysOnTop: () => void;
   allNotes?: Note[];
@@ -64,7 +63,7 @@ function toLocalDatetimeString(isoString: string): string {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
-function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, alwaysOnTop, onToggleAlwaysOnTop, allNotes, onNavigateNote, onCreateChild }: Props) {
+function NoteEditor({ note, onSave, onBack, onDelete, theme, alwaysOnTop, onToggleAlwaysOnTop, allNotes, onNavigateNote, onCreateChild }: Props) {
   const { t } = useLang();
   const [title, setTitle] = useState(note.title);
   const [tagInput, setTagInput] = useState('');
@@ -547,14 +546,6 @@ function NoteEditor({ note, onSave, onBack, onDelete, theme, onToggleTheme, alwa
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z"/><path d="M14 3v4a2 2 0 0 0 2 2h4"/>
             </svg>
-          </button>
-          <button
-            className="theme-toggle"
-            onClick={onToggleTheme}
-            title={theme === 'light' ? t('darkTheme') : t('lightTheme')}
-            aria-label={theme === 'light' ? t('darkTheme') : t('lightTheme')}
-          >
-            {theme === 'light' ? <MoonIcon /> : <SunIcon />}
           </button>
         </div>
       </div>

@@ -17,6 +17,18 @@ export interface Note {
   lockHash?: string;
 }
 
+export interface VaultEntry {
+  id: string;
+  name: string;
+  url: string;
+  username: string;
+  password: string;
+  notes: string;
+  category: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type SortMode = 'updatedAt' | 'createdAt' | 'title';
 export type ViewMode = 'grid' | 'list' | 'kanban';
 
@@ -61,6 +73,25 @@ export interface ElectronAPI {
   setCheckUpdates: (value: boolean) => Promise<void>;
   getCheckUpdates: () => Promise<boolean>;
   onUpdateAvailable: (callback: (data: { version: string; url: string }) => void) => () => void;
+  onShowVaultModal: (callback: () => void) => () => void;
+  vaultExists: () => Promise<boolean>;
+  vaultCreate: (password: string, vaultName: string) => Promise<{ success: boolean; keyFilePath?: string; vaultPath?: string }>;
+  vaultUnlock: (password: string, keyFilePath: string, vaultFilePath: string | null) => Promise<boolean>;
+  vaultLock: () => Promise<void>;
+  vaultIsUnlocked: () => Promise<boolean>;
+  vaultGetEntries: () => Promise<VaultEntry[]>;
+  vaultSaveEntry: (entry: VaultEntry) => Promise<void>;
+  vaultDeleteEntry: (id: string) => Promise<void>;
+  vaultSelectKeyFile: () => Promise<string | null>;
+  vaultSelectVaultFile: () => Promise<string | null>;
+  vaultExport: () => Promise<boolean>;
+  vaultImport: () => Promise<string | null>;
+  vaultGeneratePassword: (length: number, options: { uppercase: boolean; lowercase: boolean; digits: boolean; special: boolean }) => Promise<string>;
+  vaultImportCsv: () => Promise<VaultEntry[]>;
+  vaultExportCsv: () => Promise<boolean>;
+  vaultChangePassword: (oldPassword: string, newPassword: string, keyFilePath: string) => Promise<boolean>;
+  openVaultWindow: () => Promise<void>;
+  closeVaultWindow: () => Promise<void>;
 }
 
 declare global {

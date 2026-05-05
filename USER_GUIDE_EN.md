@@ -14,6 +14,7 @@
 - [Search](#search)
 - [Trash](#trash)
 - [Settings](#settings)
+- [Password Vault](#password-vault)
 - [Keyboard Shortcuts](#keyboard-shortcuts)
 - [Privacy](#privacy)
 
@@ -442,6 +443,47 @@ Access settings from the hamburger menu → "Settings".
 | Download icon | Export as Markdown |
 | Bell icon | Set reminder |
 | Lock icon | Encrypt / decrypt note |
+
+---
+
+## Password Vault
+
+NoteIt includes a built-in password manager with strong encryption.
+
+### Security Model
+
+- **AES-256-GCM** encryption for all vault data
+- **Two-factor protection**: master password + key file (both required)
+- **PBKDF2** with 200,000 iterations for key derivation
+- Key is zeroed from memory on lock
+
+### Getting Started
+
+1. Click the key icon in the main toolbar (or press Ctrl+Shift+L)
+2. Switch to "Create new vault" tab
+3. Enter a vault name, master password, and confirm
+4. Choose where to save the key file (.noteit-key) and vault file (.noteit-vault)
+5. Keep the key file safe – without it, the vault cannot be opened
+
+### Features
+
+- **Entries**: name, URL, username, password, notes, category
+- **Categories**: Social, Email, Banking, Work, Shopping, Other, Archive + custom
+- **Password generator**: configurable length (8-64), uppercase, lowercase, digits, special chars
+- **Auto-lock**: configurable timeout (5 min to 12 hours)
+- **Clipboard auto-clear**: copied passwords cleared after 30 seconds
+- **Import/Export CSV**: compatible with KeePass and other managers
+- **Change password**: re-encrypt key file with new password
+- **Window mode**: open vault in a separate window or as a modal
+- **Context menu**: right-click entries for quick copy/edit/delete
+- **Sorting**: by name, category, or recent
+
+### File Locations
+
+- **Vault file** (.noteit-vault): encrypted entries, stored where you choose
+- **Key file** (.noteit-key): encrypted master key, stored where you choose (e.g., USB drive)
+
+Both files are required to access the vault. Store the key file separately from the vault for maximum security.
 
 ---
 

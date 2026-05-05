@@ -1,6 +1,6 @@
 {
   "name": "noteit",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "description": "Desktop notes app with system tray, rich text, and screenshot pasting",
   "repository": {
     "type": "git",

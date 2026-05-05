@@ -1,3 +1,50 @@
+# NoteIt Notes v1.1.0
+
+## Changes
+
+### Added
+- Password Vault — built-in password manager with AES-256-GCM encryption, key file + master password
+- Vault: password strength indicator (weak/medium/strong bar)
+- Vault: old password warning (90+ days without change)
+- Vault: last used date tracking
+- Vault: entry counter badge
+- Vault: custom categories + Archive category
+- Vault: sorting (recent, name, category)
+- Vault: import/export CSV (KeePass compatible)
+- Vault: change master password
+- Vault: configurable auto-lock (5 min to 12 hours)
+- Vault: open in separate window or modal (remembered preference)
+- Vault: context menu (right-click) for quick copy/edit/delete
+- Vault: password confirmation when adding entries
+- Vault: onboarding slide about password vault
+- File associations — NoteIt appears in "Open with" for .txt and .md files
+- Global search with content preview (Ctrl+P searches inside notes)
+- Search bar opens full-text search modal
+- Keyboard shortcut Ctrl+Shift+L to open vault
+- Dark mode toggle moved to Settings
+- Gradient background in light and dark mode
+- Polish diacritics in all translations
+
+### Improved
+- Note card hover bar rounds with card corners
+- Settings links as icon buttons with tooltips
+- Modals scroll properly when window is small
+- Tooltips can overflow note cards
+- Splash screen transparency fixed
+- Install location: Program Files (per-machine)
+- Installer/AppX file naming improved
+- Custom tile icons for Microsoft Store
+
+---
+
+**Download:** `NoteIt_Notes_Setup_1.1.0.exe`
+
+**Requirements:** Windows 10 or later (x64)
+
+*© 2026 The Cloudest – Tomasz Iwanowski*
+
+---
+
 # NoteIt Notes v1.0.6
 
 ## Changes

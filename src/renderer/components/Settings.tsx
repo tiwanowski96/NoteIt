@@ -8,6 +8,8 @@ interface Props {
   onFontSizeChange: (size: number) => void;
   lang: Lang;
   onLangChange: (lang: Lang) => void;
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
   autoStart: boolean;
   onAutoStartChange: (value: boolean) => void;
   showOnStart: boolean;
@@ -15,7 +17,7 @@ interface Props {
   onClose: () => void;
 }
 
-function Settings({ fontSize, onFontSizeChange, lang, onLangChange, autoStart, onAutoStartChange, showOnStart, onShowOnStartChange, onClose }: Props) {
+function Settings({ fontSize, onFontSizeChange, lang, onLangChange, theme, onToggleTheme, autoStart, onAutoStartChange, showOnStart, onShowOnStartChange, onClose }: Props) {
   const { t } = useLang();
   const appOffset = fontSize - 15;
   const [showPrivacy, setShowPrivacy] = useState(false);
@@ -46,6 +48,17 @@ function Settings({ fontSize, onFontSizeChange, lang, onLangChange, autoStart, o
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               </button>
             </div>
+          </div>
+
+          <div className="settings-row">
+            <span>{lang === 'en' ? 'Dark mode' : 'Ciemny motyw'}</span>
+            <button
+              className={`toggle-switch ${theme === 'dark' ? 'active' : ''}`}
+              onClick={onToggleTheme}
+              aria-label="Theme"
+            >
+              <span className="toggle-knob" />
+            </button>
           </div>
         </div>
 
@@ -199,6 +212,8 @@ function Settings({ fontSize, onFontSizeChange, lang, onLangChange, autoStart, o
                   <p>No third-party analytics, tracking, or advertising services are used.</p>
                   <h4>Data storage</h4>
                   <p>All data is stored locally using electron-store in your user profile directory. You have full control over your data and can delete it at any time.</p>
+                  <h4>Password vault</h4>
+                  <p>The built-in password vault encrypts all entries with AES-256-GCM. Vault data and key files are stored locally in locations you choose. No passwords are ever transmitted over the network.</p>
                   <h4>Update checking</h4>
                   <p>If you downloaded NoteIt from GitHub, the app checks for new versions on startup (can be disabled in Settings). Only the version number is compared – no personal data is sent. If you installed NoteIt from the Microsoft Store, updates are managed automatically by the Store.</p>
                   <h4>Contact</h4>
@@ -215,6 +230,8 @@ function Settings({ fontSize, onFontSizeChange, lang, onLangChange, autoStart, o
                   <p>Nie sa uzywane zadne uslugi analityczne, sledzace ani reklamowe.</p>
                   <h4>Przechowywanie danych</h4>
                   <p>Wszystkie dane sa przechowywane lokalnie za pomoca electron-store w katalogu profilu uzytkownika. Masz pelna kontrole nad swoimi danymi i mozesz je usunac w dowolnym momencie.</p>
+                  <h4>Sejf haseł</h4>
+                  <p>Wbudowany sejf haseł szyfruje wszystkie wpisy algorytmem AES-256-GCM. Pliki sejfu i klucza przechowywane są lokalnie w wybranych przez Ciebie lokalizacjach. Żadne hasła nie są nigdy przesyłane przez sieć.</p>
                   <h4>Sprawdzanie aktualizacji</h4>
                   <p>Jezeli NoteIt zostal pobrany z GitHub, aplikacja sprawdza dostepnosc nowych wersji przy uruchomieniu (mozna wylaczyc w Ustawieniach). Porownywany jest jedynie numer wersji – zadne dane osobowe nie sa wysylane. Jezeli NoteIt zostal zainstalowany z Microsoft Store, aktualizacje sa zarzadzane automatycznie przez Store.</p>
                   <h4>Kontakt</h4>

@@ -69,4 +69,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('update-available', handler);
     return () => ipcRenderer.removeListener('update-available', handler);
   },
+  onShowVaultModal: (callback: () => void) => {
+    ipcRenderer.on('show-vault-modal', callback);
+    return () => ipcRenderer.removeListener('show-vault-modal', callback);
+  },
+  vaultExists: () => ipcRenderer.invoke('vault-exists'),
+  vaultCreate: (password: string, vaultName: string) => ipcRenderer.invoke('vault-create', password, vaultName),
+  vaultUnlock: (password: string, keyFilePath: string, vaultFilePath: string | null) => ipcRenderer.invoke('vault-unlock', password, keyFilePath, vaultFilePath),
+  vaultLock: () => ipcRenderer.invoke('vault-lock'),
+  vaultIsUnlocked: () => ipcRenderer.invoke('vault-is-unlocked'),
+  vaultGetEntries: () => ipcRenderer.invoke('vault-get-entries'),
+  vaultSaveEntry: (entry: any) => ipcRenderer.invoke('vault-save-entry', entry),
+  vaultDeleteEntry: (id: string) => ipcRenderer.invoke('vault-delete-entry', id),
+  vaultSelectKeyFile: () => ipcRenderer.invoke('vault-select-key-file'),
+  vaultSelectVaultFile: () => ipcRenderer.invoke('vault-select-vault-file'),
+  vaultExport: () => ipcRenderer.invoke('vault-export'),
+  vaultImport: () => ipcRenderer.invoke('vault-import'),
+  vaultGeneratePassword: (length: number, options: { uppercase: boolean; lowercase: boolean; digits: boolean; special: boolean }) => ipcRenderer.invoke('vault-generate-password', length, options),
+  vaultImportCsv: () => ipcRenderer.invoke('vault-import-csv'),
+  vaultExportCsv: () => ipcRenderer.invoke('vault-export-csv'),
+  vaultChangePassword: (oldPassword: string, newPassword: string, keyFilePath: string) => ipcRenderer.invoke('vault-change-password', oldPassword, newPassword, keyFilePath),
+  openVaultWindow: () => ipcRenderer.invoke('open-vault-window'),
+  closeVaultWindow: () => ipcRenderer.invoke('close-vault-window'),
 });
